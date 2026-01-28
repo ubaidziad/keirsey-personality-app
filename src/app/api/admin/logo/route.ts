@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const { error: dbError } = await supabase
       .from('admin_settings')
       .update({
-        setting_value: JSON.stringify(logoUrl),
+        setting_value: logoUrl,
       })
       .eq('setting_key', 'logo_url');
 
@@ -91,7 +91,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const logoUrl = JSON.parse(settings.setting_value);
+    const logoUrl = settings.setting_value;
     
     if (logoUrl) {
       // Extract filename from URL
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
     const { error: dbError } = await supabase
       .from('admin_settings')
       .update({
-        setting_value: '""',
+        setting_value: '',
       })
       .eq('setting_key', 'logo_url');
 

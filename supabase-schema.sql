@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  job_title VARCHAR(255),
   department VARCHAR(255),
   organization VARCHAR(255),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

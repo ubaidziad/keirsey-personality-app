@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
     // Update admin_settings table
     const { error: dbError } = await supabase
       .from('admin_settings')
-      .upsert({
-        setting_key: 'logo_url',
+      .update({
         setting_value: JSON.stringify(logoUrl),
-      });
+      })
+      .eq('setting_key', 'logo_url');
 
     if (dbError) {
       console.error('Database update error:', dbError);
@@ -106,10 +106,10 @@ export async function DELETE(request: NextRequest) {
     // Update database to remove logo URL
     const { error: dbError } = await supabase
       .from('admin_settings')
-      .upsert({
-        setting_key: 'logo_url',
+      .update({
         setting_value: '""',
-      });
+      })
+      .eq('setting_key', 'logo_url');
 
     if (dbError) {
       console.error('Database update error:', dbError);

@@ -187,9 +187,9 @@ export default function Home() {
                     className="mt-1"
                   />
                   <div className="flex-1">
-                    <Label htmlFor="consent" className="text-sm cursor-pointer leading-relaxed">
-                      <Shield className="h-4 w-4 inline mr-1 text-green-600" />
-                      {t('registration.consent', language)}
+                    <Label htmlFor="consent" className="flex items-start gap-2 text-sm cursor-pointer leading-relaxed">
+                      <Shield className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>{t('registration.consent', language)}</span>
                     </Label>
                   </div>
                 </div>

@@ -259,7 +259,13 @@ export default function AdminPage() {
       language === 'en' ? 'Email' : 'E-mel',
       language === 'en' ? 'Department' : 'Jabatan',
       language === 'en' ? 'Personality Type' : 'Jenis Personaliti',
+      language === 'en' ? 'Secondary Type' : 'Jenis Kedua',
       'MBTI',
+      language === 'en' ? 'Hybrid' : 'Hibrid',
+      language === 'en' ? 'Guardian Score' : 'Skor Guardian',
+      language === 'en' ? 'Rational Score' : 'Skor Rational',
+      language === 'en' ? 'Idealist Score' : 'Skor Idealist',
+      language === 'en' ? 'Artisan Score' : 'Skor Artisan',
       language === 'en' ? 'Date' : 'Tarikh'
     ];
     const rows = participants.map(p => [
@@ -267,7 +273,13 @@ export default function AdminPage() {
       p.email,
       p.department || '-',
       personalityTypeData[p.dominant_type].name[language],
+      personalityTypeData[p.secondary_type].name[language],
       p.mbti_code,
+      p.is_hybrid ? (language === 'en' ? 'Yes' : 'Ya') : (language === 'en' ? 'No' : 'Tidak'),
+      `${p.guardian_score}%`,
+      `${p.rational_score}%`,
+      `${p.idealist_score}%`,
+      `${p.artisan_score}%`,
       new Date(p.created_at).toLocaleDateString()
     ]);
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -290,7 +302,7 @@ export default function AdminPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
           <div>
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-              {t('admin.dashboard', language)}
+              {language === 'en' ? 'Admin Panel' : 'Panel Pentadbir'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
               {language === 'en' ? 'Manage assessments and view analytics' : 'Urus penilaian dan lihat analitik'}
@@ -445,7 +457,7 @@ export default function AdminPage() {
 
             {/* Participants Table */}
             <Card>
-              <CardContent className="p-0">
+              <CardContent className="p-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

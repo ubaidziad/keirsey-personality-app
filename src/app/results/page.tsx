@@ -123,7 +123,7 @@ export default function ResultsPage() {
       hasSaved.current = true;
       saveData();
     }
-  }, [participant, responses, language, scores, questionOrder]);
+  }, [participant, responses, language]);
 
   if (isLoading || !scores) {
     return (

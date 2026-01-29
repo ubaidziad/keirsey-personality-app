@@ -128,39 +128,54 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
     .distribution-item {
       display: flex;
       align-items: center;
-      margin-bottom: 15px;
-      padding: 15px;
-      background: #f9fafb;
-      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 0;
     }
     .distribution-label {
-      flex: 0 0 150px;
-      font-weight: 600;
-      font-size: 14px;
+      flex: 0 0 140px;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .type-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      font-weight: 700;
     }
     .distribution-bar-container {
       flex: 1;
-      height: 32px;
-      background: #e5e7eb;
-      border-radius: 6px;
+      height: 40px;
+      background: #f3f4f6;
+      border-radius: 8px;
       overflow: hidden;
       margin: 0 15px;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
     }
     .distribution-bar {
       height: 100%;
       transition: width 0.3s;
       display: flex;
       align-items: center;
-      padding-left: 10px;
+      padding-left: 12px;
       color: white;
-      font-weight: 600;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .distribution-percentage {
-      flex: 0 0 60px;
+      flex: 0 0 70px;
       text-align: right;
-      font-weight: 700;
-      font-size: 16px;
+      font-weight: 800;
+      font-size: 18px;
     }
     .participants-table {
       width: 100%;
@@ -240,17 +255,33 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   <!-- Personality Distribution -->
   <div class="section">
     <h2 class="section-title">${language === 'en' ? 'Personality Type Distribution' : 'Taburan Jenis Personaliti'}</h2>
-    ${sortedDistribution.map(({ name, percentage, color }) => `
+    <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
+      ${language === 'en' 
+        ? 'Distribution of dominant personality types among all participants' 
+        : 'Taburan jenis personaliti dominan di kalangan semua peserta'}
+    </p>
+    ${sortedDistribution.map(({ type, name, percentage, color }) => {
+      const icons = {
+        guardian: 'G',
+        rational: 'R',
+        idealist: 'I',
+        artisan: 'A'
+      };
+      return `
       <div class="distribution-item">
-        <div class="distribution-label" style="color: ${color}">${name}</div>
+        <div class="distribution-label" style="color: ${color}">
+          <span class="type-icon" style="background-color: ${color}">${icons[type]}</span>
+          <span>${name}</span>
+        </div>
         <div class="distribution-bar-container">
-          <div class="distribution-bar" style="width: ${percentage}%; background-color: ${color}">
-            ${percentage > 15 ? `${percentage.toFixed(0)}%` : ''}
+          <div class="distribution-bar" style="width: ${percentage}%; background: linear-gradient(90deg, ${color} 0%, ${color}dd 100%)">
+            ${percentage > 12 ? `${percentage.toFixed(0)}%` : ''}
           </div>
         </div>
         <div class="distribution-percentage" style="color: ${color}">${percentage.toFixed(0)}%</div>
       </div>
-    `).join('')}
+    `;
+    }).join('')}
   </div>
 
   ${stats.departments && stats.departments.length > 0 ? `

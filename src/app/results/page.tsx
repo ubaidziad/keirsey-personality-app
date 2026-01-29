@@ -143,10 +143,55 @@ export default function ResultsPage() {
   const temperamentOrder: PersonalityType[] = ['guardian', 'rational', 'idealist', 'artisan'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 print:bg-white">
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            margin: 20mm;
+            size: A4;
+          }
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          .print-hide {
+            display: none !important;
+          }
+          .print-page-break {
+            page-break-before: always;
+          }
+        }
+      `}</style>
+      
+      {/* Print Header */}
+      <div className="hidden print:block mb-8 pb-4 border-b-2 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">
+              {language === 'en' ? 'Keirsey Personality Assessment Results' : 'Keputusan Penilaian Personaliti Keirsey'}
+            </h1>
+            <p className="text-sm text-gray-600">
+              {participant?.full_name} | {participant?.email}
+            </p>
+            <p className="text-xs text-gray-500">
+              {language === 'en' ? 'Generated on' : 'Dijana pada'} {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full" style={{ backgroundColor: personalityTypeColors[scores.dominantType] + '20', border: `3px solid ${personalityTypeColors[scores.dominantType]}` }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke={personalityTypeColors[scores.dominantType]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-8 max-w-4xl print:px-0 print:py-0">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 print:mb-6 print:hidden">
           <div className="flex justify-center mb-4">
             <div className="w-32 h-32 relative">
               <Image
@@ -180,7 +225,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Temperament Breakdown */}
-        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-6">
+        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-6 print:shadow-none print:bg-white print:border print:border-gray-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
@@ -222,7 +267,7 @@ export default function ResultsPage() {
         </Card>
 
         {/* MBTI Dimensions */}
-        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-6">
+        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-6 print:shadow-none print:bg-white print:border print:border-gray-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -299,7 +344,7 @@ export default function ResultsPage() {
         </Card>
 
         {/* Quick Strengths Preview */}
-        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-8">
+        <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur mb-8 print:shadow-none print:bg-white print:border print:border-gray-300">
           <CardHeader>
             <CardTitle>{t('analysis.strengths', language)}</CardTitle>
           </CardHeader>
@@ -315,8 +360,36 @@ export default function ResultsPage() {
           </CardContent>
         </Card>
 
+        {/* Print Summary Box */}
+        <div className="hidden print:block mb-6 p-6 rounded-xl" style={{ backgroundColor: personalityTypeColors[scores.dominantType] + '10', border: `2px solid ${personalityTypeColors[scores.dominantType]}` }}>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-2" style={{ color: personalityTypeColors[scores.dominantType] }}>
+              {dominantData.name[language]}
+              {scores.isHybrid && (
+                <span className="text-2xl font-normal"> + {secondaryData.name[language]}</span>
+              )}
+            </h2>
+            <p className="text-xl font-semibold text-gray-700 mb-2">
+              {language === 'en' ? 'MBTI Code:' : 'Kod MBTI:'} {scores.mbtiCode}
+            </p>
+            {scores.isHybrid && (
+              <p className="text-sm text-amber-700 font-medium">
+                {language === 'en' 
+                  ? '⚡ Hybrid Profile - Balanced traits across multiple types' 
+                  : '⚡ Profil Hibrid - Ciri seimbang merentasi beberapa jenis'}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        {/* Print Footer */}
+        <div className="hidden print:block mt-8 pt-4 border-t-2 border-gray-300 text-center text-xs text-gray-500">
+          <p>{language === 'en' ? 'Keirsey Personality Assessment Report' : 'Laporan Penilaian Personaliti Keirsey'}</p>
+          <p className="mt-1">© 2026 {language === 'en' ? 'All Rights Reserved' : 'Hak Cipta Terpelihara'}</p>
+        </div>
+        
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center print-hide">
           <Button
             onClick={() => router.push('/analysis')}
             className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 px-8"
@@ -336,7 +409,7 @@ export default function ResultsPage() {
 
         {/* Participant Info */}
         {participant && (
-          <div className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400 print-hide">
             <p>{participant.full_name} | {participant.job_title}</p>
             <p>{new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { 
               year: 'numeric', 

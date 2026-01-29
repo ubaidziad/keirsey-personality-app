@@ -97,24 +97,30 @@ export default function RegisterPage() {
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {t('home.title', language)}
+            {language === 'en' ? 'Keirsey Personality Assessment' : 'Penilaian Personaliti Keirsey'}
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            {t('home.subtitle', language)}
+            {language === 'en' 
+              ? 'Discover your natural temperament and unlock your potential'
+              : 'Temui perangai semula jadi anda dan buka potensi anda'}
           </p>
         </div>
 
         {/* Registration Form */}
         <Card className="border-2">
           <CardHeader>
-            <CardTitle>{t('home.getStarted', language)}</CardTitle>
-            <CardDescription>{t('home.registerDescription', language)}</CardDescription>
+            <CardTitle>{language === 'en' ? 'Get Started' : 'Mulakan'}</CardTitle>
+            <CardDescription>
+              {language === 'en' 
+                ? 'Please fill in your details to begin the assessment'
+                : 'Sila isi butiran anda untuk memulakan penilaian'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-2">
-                <Label htmlFor="full_name">{t('home.fullName', language)} *</Label>
+                <Label htmlFor="full_name">{language === 'en' ? 'Full Name' : 'Nama Penuh'} *</Label>
                 <Input
                   id="full_name"
                   value={formData.full_name}
@@ -129,7 +135,7 @@ export default function RegisterPage() {
 
               {/* Phone */}
               <div className="space-y-2">
-                <Label htmlFor="phone">{t('home.phone', language)} *</Label>
+                <Label htmlFor="phone">{language === 'en' ? 'Phone Number' : 'Nombor Telefon'} *</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -145,7 +151,7 @@ export default function RegisterPage() {
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">{t('home.email', language)} *</Label>
+                <Label htmlFor="email">{language === 'en' ? 'Email Address' : 'Alamat E-mel'} *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -161,7 +167,7 @@ export default function RegisterPage() {
 
               {/* Job Title */}
               <div className="space-y-2">
-                <Label htmlFor="job_title">{t('home.jobTitle', language)} *</Label>
+                <Label htmlFor="job_title">{language === 'en' ? 'Job Title' : 'Jawatan'} *</Label>
                 <Input
                   id="job_title"
                   value={formData.job_title}
@@ -176,7 +182,7 @@ export default function RegisterPage() {
 
               {/* Department */}
               <div className="space-y-2">
-                <Label htmlFor="department">{t('home.department', language)}</Label>
+                <Label htmlFor="department">{language === 'en' ? 'Department' : 'Jabatan'}</Label>
                 <Input
                   id="department"
                   value={formData.department}
@@ -200,7 +206,9 @@ export default function RegisterPage() {
                   >
                     <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <span>
-                      {t('home.consentText', language)}
+                      {language === 'en'
+                        ? 'I agree to the collection and processing of my personal data for the purpose of this personality assessment. My data will be kept confidential and used solely for assessment purposes.'
+                        : 'Saya bersetuju dengan pengumpulan dan pemprosesan data peribadi saya untuk tujuan penilaian personaliti ini. Data saya akan dirahsiakan dan digunakan semata-mata untuk tujuan penilaian.'}
                     </span>
                   </label>
                   {errors.consent && (
@@ -215,7 +223,7 @@ export default function RegisterPage() {
                 size="lg"
                 className="w-full gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                {t('home.startAssessment', language)}
+{language === 'en' ? 'Start Assessment' : 'Mulakan Penilaian'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </form>

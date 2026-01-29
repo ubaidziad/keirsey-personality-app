@@ -117,7 +117,52 @@ export default function AnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 print:bg-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Print-only header */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            margin: 20mm;
+            size: A4;
+          }
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          .print-page-break {
+            page-break-before: always;
+          }
+          .print-avoid-break {
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+      
+      {/* Print Header with Logo and Title */}
+      <div className="hidden print:block mb-8 pb-4 border-b-2 border-gray-300">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">
+              {language === 'en' ? 'Keirsey Personality Assessment' : 'Penilaian Personaliti Keirsey'}
+            </h1>
+            <p className="text-sm text-gray-600">
+              {participant?.full_name} | {participant?.email}
+            </p>
+            <p className="text-xs text-gray-500">
+              {language === 'en' ? 'Generated on' : 'Dijana pada'} {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full" style={{ backgroundColor: dominantColor + '20', border: `3px solid ${dominantColor}` }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke={dominantColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-8 max-w-4xl print:px-0 print:py-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 print:hidden">
           <Button
@@ -308,70 +353,182 @@ export default function AnalysisPage() {
         </Tabs>
 
         {/* Print View - Shows all sections */}
-        <div className="hidden print:block space-y-8">
+        <div className="hidden print:block space-y-6">
+          {/* Personality Type Summary Box */}
+          <div className="print-avoid-break mb-8 p-6 rounded-xl" style={{ backgroundColor: dominantColor + '10', border: `2px solid ${dominantColor}` }}>
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-2" style={{ color: dominantColor }}>
+                {dominantData.name[language]}
+                {scores.isHybrid && (
+                  <span className="text-2xl font-normal"> + {secondaryData.name[language]}</span>
+                )}
+              </h2>
+              <p className="text-xl font-semibold text-gray-700 mb-2">
+                {language === 'en' ? 'MBTI Code:' : 'Kod MBTI:'} {scores.mbtiCode}
+              </p>
+              {scores.isHybrid && (
+                <p className="text-sm text-amber-700 font-medium">
+                  {language === 'en' 
+                    ? '⚡ Hybrid Profile - Balanced traits across multiple types' 
+                    : '⚡ Profil Hibrid - Ciri seimbang merentasi beberapa jenis'}
+                </p>
+              )}
+              {aiInsights?.source === 'ai' && (
+                <p className="text-xs text-purple-700 mt-2 font-medium">
+                  ✨ {language === 'en' ? 'Enhanced with AI-powered insights' : 'Dipertingkat dengan pandangan berkuasa AI'}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Personality Breakdown */}
+          <div className="print-avoid-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <line x1="12" y1="20" x2="12" y2="10"/>
+                <line x1="18" y1="20" x2="18" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="16"/>
+              </svg>
+              {language === 'en' ? 'Personality Breakdown' : 'Pecahan Personaliti'}
+            </h3>
+            <div className="space-y-3">
+              {[
+                { type: 'guardian', name: personalityTypeData.guardian.name[language], score: scores.temperaments.guardian, color: personalityTypeColors.guardian },
+                { type: 'rational', name: personalityTypeData.rational.name[language], score: scores.temperaments.rational, color: personalityTypeColors.rational },
+                { type: 'idealist', name: personalityTypeData.idealist.name[language], score: scores.temperaments.idealist, color: personalityTypeColors.idealist },
+                { type: 'artisan', name: personalityTypeData.artisan.name[language], score: scores.temperaments.artisan, color: personalityTypeColors.artisan },
+              ]
+                .sort((a, b) => b.score - a.score)
+                .map(({ type, name, score, color }) => (
+                  <div key={type} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-semibold text-sm text-gray-700">{name}</span>
+                        <span className="font-bold text-sm" style={{ color }}>{score.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${score}%`, backgroundColor: color }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
           {/* Strengths */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-green-600">{t('analysis.strengths', language)}</h2>
-            <ul className="space-y-2">
-              {(aiInsights?.strengths || dominantData.strengths[language]).map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="print-avoid-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#16a34a' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M7 10v12"/>
+                <path d="M15 5v17"/>
+                <path d="M17 3v2"/>
+                <path d="M15 3h2"/>
+              </svg>
+              {t('analysis.strengths', language)}
+            </h3>
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <ul className="space-y-2">
+                {(aiInsights?.strengths || dominantData.strengths[language]).map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="text-green-600 font-bold text-lg flex-shrink-0">✓</span>
+                    <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Weaknesses */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-amber-600">{t('analysis.weaknesses', language)}</h2>
-            <ul className="space-y-2">
-              {(aiInsights?.weaknesses || dominantData.weaknesses[language]).map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-amber-500">!</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Areas for Development */}
+          <div className="print-avoid-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#d97706' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              {language === 'en' ? 'Areas for Development' : 'Bidang Pembangunan'}
+            </h3>
+            <div className="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
+              <ul className="space-y-2">
+                {(aiInsights?.weaknesses || dominantData.weaknesses[language]).map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="text-amber-600 font-bold text-lg flex-shrink-0">⚠</span>
+                    <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Careers */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-blue-600">{t('analysis.careers', language)}</h2>
-            <ul className="grid grid-cols-2 gap-2">
-              {(aiInsights?.careerSuggestions || dominantData.careers[language]).map((item, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Career Suggestions */}
+          <div className="print-avoid-break print-page-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#2563eb' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              {t('analysis.careers', language)}
+            </h3>
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {(aiInsights?.careerSuggestions || dominantData.careers[language]).map((item, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-blue-600 font-bold flex-shrink-0">•</span>
+                    <span className="text-gray-700 text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Do's */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-green-600">{t('analysis.dos', language)}</h2>
-            <ul className="space-y-2">
-              {(aiInsights?.approachDos || dominantData.dos[language]).map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Communication Do's */}
+          <div className="print-avoid-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#059669' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {language === 'en' ? 'Communication Do\'s' : 'Perkara Yang Perlu'}
+            </h3>
+            <div className="bg-emerald-50 rounded-lg p-4 border-l-4 border-emerald-500">
+              <ul className="space-y-2">
+                {(aiInsights?.approachDos || dominantData.dos[language]).map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="text-emerald-600 font-bold text-lg flex-shrink-0">✓</span>
+                    <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Don'ts */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-red-600">{t('analysis.donts', language)}</h2>
-            <ul className="space-y-2">
-              {(aiInsights?.approachDonts || dominantData.donts[language]).map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-red-500">✗</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Communication Don'ts */}
+          <div className="print-avoid-break mb-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#dc2626' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              {language === 'en' ? 'Communication Don\'ts' : 'Perkara Yang Tidak Perlu'}
+            </h3>
+            <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <ul className="space-y-2">
+                {(aiInsights?.approachDonts || dominantData.donts[language]).map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="text-red-600 font-bold text-lg flex-shrink-0">✗</span>
+                    <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          
+          {/* Print Footer */}
+          <div className="mt-8 pt-4 border-t-2 border-gray-300 text-center text-xs text-gray-500">
+            <p>{language === 'en' ? 'Keirsey Personality Assessment Report' : 'Laporan Penilaian Personaliti Keirsey'}</p>
+            <p className="mt-1">© 2026 {language === 'en' ? 'All Rights Reserved' : 'Hak Cipta Terpelihara'}</p>
           </div>
         </div>
 

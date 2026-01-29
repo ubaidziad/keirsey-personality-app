@@ -1,0 +1,358 @@
+'use client';
+
+import { useState } from 'react';
+import { Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Language, PersonalityType } from '@/lib/types';
+import { personalityTypeColors, personalityTypeData } from '@/lib/personality-data';
+
+interface AdminPDFExportProps {
+  stats: {
+    totalParticipants: number;
+    completedAssessments: number;
+    distribution: Record<PersonalityType, number>;
+    departments: Array<{ department: string; participant_count: number; completed_assessments: number }>;
+  };
+  participants: any[];
+  language: Language;
+  companyLogoUrl?: string;
+}
+
+export function AdminPDFExport({ stats, participants, language, companyLogoUrl }: AdminPDFExportProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const generatePDF = () => {
+    setIsExporting(true);
+    
+    // Open print window with custom content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setIsExporting(false);
+      alert(language === 'en' ? 'Please allow popups to export PDF' : 'Sila benarkan popup untuk eksport PDF');
+      return;
+    }
+
+    const distribution = stats.distribution || { guardian: 0, rational: 0, idealist: 0, artisan: 0 };
+    const sortedDistribution = Object.entries(distribution)
+      .sort(([, a], [, b]) => b - a)
+      .map(([type, percentage]) => ({
+        type: type as PersonalityType,
+        percentage,
+        name: personalityTypeData[type as PersonalityType].name[language],
+        color: personalityTypeColors[type as PersonalityType],
+      }));
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${language === 'en' ? 'Assessment Analytics Report' : 'Laporan Analitik Penilaian'}</title>
+  <style>
+    @page {
+      margin: 20mm;
+      size: A4;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #2563eb;
+      margin-bottom: 30px;
+    }
+    .logo-container {
+      max-width: 150px;
+      max-height: 80px;
+    }
+    .logo {
+      max-width: 100%;
+      max-height: 80px;
+      object-fit: contain;
+    }
+    .header-info h1 {
+      margin: 0;
+      font-size: 28px;
+      color: #1e40af;
+      font-weight: 700;
+    }
+    .header-info p {
+      margin: 5px 0 0 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 4px solid #2563eb;
+    }
+    .stat-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1e40af;
+      margin: 0;
+    }
+    .section {
+      margin-bottom: 40px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .distribution-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .distribution-label {
+      flex: 0 0 150px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .distribution-bar-container {
+      flex: 1;
+      height: 32px;
+      background: #e5e7eb;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 0 15px;
+    }
+    .distribution-bar {
+      height: 100%;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .distribution-percentage {
+      flex: 0 0 60px;
+      text-align: right;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .participants-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 12px;
+    }
+    .participants-table thead {
+      background: #1e40af;
+      color: white;
+    }
+    .participants-table th {
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .participants-table tbody tr {
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .participants-table tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+    .participants-table td {
+      padding: 10px 8px;
+    }
+    .type-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e5e7eb;
+      text-align: center;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-info">
+      <h1>${language === 'en' ? 'Assessment Analytics Report' : 'Laporan Analitik Penilaian'}</h1>
+      <p>${language === 'en' ? 'Generated on' : 'Dijana pada'} ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}</p>
+    </div>
+    ${companyLogoUrl ? `
+    <div class="logo-container">
+      <img src="${companyLogoUrl}" alt="Company Logo" class="logo" />
+    </div>
+    ` : ''}
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>${language === 'en' ? 'Total Participants' : 'Jumlah Peserta'}</h3>
+      <p class="value">${stats.totalParticipants}</p>
+    </div>
+    <div class="stat-card">
+      <h3>${language === 'en' ? 'Completed Assessments' : 'Penilaian Selesai'}</h3>
+      <p class="value">${stats.completedAssessments}</p>
+    </div>
+  </div>
+
+  <!-- Personality Distribution -->
+  <div class="section">
+    <h2 class="section-title">${language === 'en' ? 'Personality Type Distribution' : 'Taburan Jenis Personaliti'}</h2>
+    ${sortedDistribution.map(({ name, percentage, color }) => `
+      <div class="distribution-item">
+        <div class="distribution-label" style="color: ${color}">${name}</div>
+        <div class="distribution-bar-container">
+          <div class="distribution-bar" style="width: ${percentage}%; background-color: ${color}">
+            ${percentage > 15 ? `${percentage.toFixed(0)}%` : ''}
+          </div>
+        </div>
+        <div class="distribution-percentage" style="color: ${color}">${percentage.toFixed(0)}%</div>
+      </div>
+    `).join('')}
+  </div>
+
+  ${stats.departments && stats.departments.length > 0 ? `
+  <!-- Department Breakdown -->
+  <div class="section">
+    <h2 class="section-title">${language === 'en' ? 'Department Breakdown' : 'Pecahan Jabatan'}</h2>
+    <table class="participants-table">
+      <thead>
+        <tr>
+          <th>${language === 'en' ? 'Department' : 'Jabatan'}</th>
+          <th style="text-align: center;">${language === 'en' ? 'Participants' : 'Peserta'}</th>
+          <th style="text-align: center;">${language === 'en' ? 'Assessments' : 'Penilaian'}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${stats.departments.map(dept => `
+          <tr>
+            <td><strong>${dept.department || (language === 'en' ? 'Not Specified' : 'Tidak Dinyatakan')}</strong></td>
+            <td style="text-align: center;">${dept.participant_count}</td>
+            <td style="text-align: center;">${dept.completed_assessments}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  ${participants && participants.length > 0 ? `
+  <!-- Participant List -->
+  <div class="section page-break">
+    <h2 class="section-title">${language === 'en' ? 'Participant Details' : 'Butiran Peserta'}</h2>
+    <table class="participants-table">
+      <thead>
+        <tr>
+          <th>${language === 'en' ? 'Name' : 'Nama'}</th>
+          <th>${language === 'en' ? 'Email' : 'E-mel'}</th>
+          <th>${language === 'en' ? 'Department' : 'Jabatan'}</th>
+          <th>${language === 'en' ? 'Type' : 'Jenis'}</th>
+          <th style="text-align: center;">${language === 'en' ? 'Date' : 'Tarikh'}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${participants.slice(0, 50).map(p => {
+          const typeColor = personalityTypeColors[p.dominant_type as PersonalityType];
+          const typeName = personalityTypeData[p.dominant_type as PersonalityType].name[language];
+          return `
+          <tr>
+            <td><strong>${p.full_name}</strong></td>
+            <td>${p.email}</td>
+            <td>${p.department || '-'}</td>
+            <td>
+              <span class="type-badge" style="background-color: ${typeColor}">
+                ${typeName}
+              </span>
+            </td>
+            <td style="text-align: center;">${new Date(p.created_at).toLocaleDateString()}</td>
+          </tr>
+        `;
+        }).join('')}
+      </tbody>
+    </table>
+    ${participants.length > 50 ? `
+    <p style="margin-top: 15px; color: #6b7280; font-style: italic;">
+      ${language === 'en' 
+        ? `Showing first 50 of ${participants.length} participants` 
+        : `Menunjukkan 50 pertama daripada ${participants.length} peserta`}
+    </p>
+    ` : ''}
+  </div>
+  ` : ''}
+
+  <!-- Footer -->
+  <div class="footer">
+    <p><strong>${language === 'en' ? 'Keirsey Personality Assessment' : 'Penilaian Personaliti Keirsey'}</strong></p>
+    <p>© 2026 ${language === 'en' ? 'All Rights Reserved' : 'Hak Cipta Terpelihara'}</p>
+  </div>
+</body>
+</html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for images to load before printing
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      setIsExporting(false);
+    }, 500);
+  };
+
+  return (
+    <Button
+      variant="outline"
+      onClick={generatePDF}
+      disabled={isExporting}
+      className="gap-2"
+    >
+      <Download className="h-4 w-4" />
+      {isExporting 
+        ? (language === 'en' ? 'Generating...' : 'Menjana...') 
+        : (language === 'en' ? 'Export PDF' : 'Eksport PDF')}
+    </Button>
+  );
+}

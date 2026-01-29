@@ -40,6 +40,7 @@ import { PersonalityType, Language } from '@/lib/types';
 import { ParticipantDetailsModal } from '@/components/admin/ParticipantDetailsModal';
 import { DeleteConfirmationModal } from '@/components/admin/DeleteConfirmationModal';
 import { CompanyLogoModal } from '@/components/admin/CompanyLogoModal';
+import { AdminPDFExport } from '@/components/admin/AdminPDFExport';
 import { toast } from 'sonner';
 
 interface ParticipantData {
@@ -335,25 +336,23 @@ export default function AdminPage() {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  {t('admin.export', language)}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={exportToCSV}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  {t('admin.exportExcel', language)}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.print()}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  {t('admin.exportPdf', language)}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToCSV}
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {language === 'en' ? 'Export CSV' : 'Eksport CSV'}
+            </Button>
+            {stats && (
+              <AdminPDFExport
+                stats={stats}
+                participants={participants}
+                language={language}
+                companyLogoUrl={companyLogoUrl}
+              />
+            )}
             <Button
               variant="outline"
               size="sm"

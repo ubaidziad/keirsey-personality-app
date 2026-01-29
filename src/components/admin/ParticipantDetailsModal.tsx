@@ -33,6 +33,12 @@ interface ParticipantDetailsModalProps {
     rational_score: number;
     idealist_score: number;
     artisan_score: number;
+    ai_strengths?: string;
+    ai_weaknesses?: string;
+    ai_career_suggestions?: string;
+    ai_approach_dos?: string;
+    ai_approach_donts?: string;
+    ai_insights_source?: string;
   };
   language: Language;
 }
@@ -46,6 +52,14 @@ export function ParticipantDetailsModal({
   const dominantData = personalityTypeData[participant.dominant_type];
   const secondaryData = personalityTypeData[participant.secondary_type];
   const dominantColor = personalityTypeColors[participant.dominant_type];
+
+  // Parse AI insights from JSON strings
+  const aiStrengths = participant.ai_strengths ? JSON.parse(participant.ai_strengths) : null;
+  const aiWeaknesses = participant.ai_weaknesses ? JSON.parse(participant.ai_weaknesses) : null;
+  const aiCareerSuggestions = participant.ai_career_suggestions ? JSON.parse(participant.ai_career_suggestions) : null;
+  const aiApproachDos = participant.ai_approach_dos ? JSON.parse(participant.ai_approach_dos) : null;
+  const aiApproachDonts = participant.ai_approach_donts ? JSON.parse(participant.ai_approach_donts) : null;
+  const hasAIInsights = participant.ai_insights_source === 'ai';
 
   const scores = [
     { type: 'guardian' as PersonalityType, value: participant.guardian_score },
@@ -180,16 +194,21 @@ export function ParticipantDetailsModal({
             </CardContent>
           </Card>
 
-          {/* Key Traits */}
+          {/* Key Strengths - Show AI insights if available */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">
+              <CardTitle className="text-lg flex items-center gap-2">
                 {language === 'en' ? 'Key Strengths' : 'Kelebihan Utama'}
+                {hasAIInsights && (
+                  <span className="text-xs font-normal px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                    AI
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {dominantData.strengths[language].slice(0, 3).map((strength, index) => (
+                {(aiStrengths || dominantData.strengths[language]).slice(0, 5).map((strength, index) => (
                   <li key={index} className="flex items-start gap-2 text-sm">
                     <span className="text-green-500 mt-0.5">✓</span>
                     <span>{strength}</span>
@@ -198,6 +217,53 @@ export function ParticipantDetailsModal({
               </ul>
             </CardContent>
           </Card>
+
+          {/* AI Insights - Additional sections if available */}
+          {aiWeaknesses && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {language === 'en' ? 'Areas for Development' : 'Bidang Pembangunan'}
+                  <span className="text-xs font-normal px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                    AI
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {aiWeaknesses.slice(0, 5).map((weakness, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <span className="text-amber-500 mt-0.5">!</span>
+                      <span>{weakness}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {aiCareerSuggestions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {language === 'en' ? 'Career Suggestions' : 'Cadangan Kerjaya'}
+                  <span className="text-xs font-normal px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                    AI
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {aiCareerSuggestions.slice(0, 5).map((career, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span>{career}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </DialogContent>
     </Dialog>

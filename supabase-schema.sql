@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS assessment_results (
   secondary_type VARCHAR(20) NOT NULL CHECK (secondary_type IN ('guardian', 'rational', 'idealist', 'artisan')),
   is_hybrid BOOLEAN DEFAULT FALSE,
   
+  -- AI-generated insights (stored as JSON arrays)
+  ai_strengths TEXT,
+  ai_weaknesses TEXT,
+  ai_career_suggestions TEXT,
+  ai_approach_dos TEXT,
+  ai_approach_donts TEXT,
+  ai_insights_source VARCHAR(20) DEFAULT 'fallback' CHECK (ai_insights_source IN ('ai', 'fallback')),
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -145,6 +153,8 @@ SELECT
   ar.created_at,
   p.full_name,
   p.email,
+  p.phone,
+  p.job_title,
   p.department,
   ar.dominant_type,
   ar.secondary_type,
@@ -153,7 +163,13 @@ SELECT
   ar.guardian_score,
   ar.rational_score,
   ar.idealist_score,
-  ar.artisan_score
+  ar.artisan_score,
+  ar.ai_strengths,
+  ar.ai_weaknesses,
+  ar.ai_career_suggestions,
+  ar.ai_approach_dos,
+  ar.ai_approach_donts,
+  ar.ai_insights_source
 FROM assessment_results ar
 JOIN participants p ON ar.participant_id = p.id
 ORDER BY ar.created_at DESC;

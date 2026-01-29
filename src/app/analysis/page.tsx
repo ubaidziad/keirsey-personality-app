@@ -313,7 +313,7 @@ export default function AnalysisPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 text-green-600">{t('analysis.strengths', language)}</h2>
             <ul className="space-y-2">
-              {dominantData.strengths[language].map((item, index) => (
+              {(aiInsights?.strengths || dominantData.strengths[language]).map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-green-500">✓</span>
                   <span>{item}</span>
@@ -326,7 +326,7 @@ export default function AnalysisPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 text-amber-600">{t('analysis.weaknesses', language)}</h2>
             <ul className="space-y-2">
-              {dominantData.weaknesses[language].map((item, index) => (
+              {(aiInsights?.weaknesses || dominantData.weaknesses[language]).map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-amber-500">!</span>
                   <span>{item}</span>
@@ -339,7 +339,7 @@ export default function AnalysisPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 text-blue-600">{t('analysis.careers', language)}</h2>
             <ul className="grid grid-cols-2 gap-2">
-              {dominantData.careers[language].map((item, index) => (
+              {(aiInsights?.careerSuggestions || dominantData.careers[language]).map((item, index) => (
                 <li key={index} className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-blue-500" />
                   <span>{item}</span>
@@ -352,7 +352,7 @@ export default function AnalysisPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 text-green-600">{t('analysis.dos', language)}</h2>
             <ul className="space-y-2">
-              {dominantData.dos[language].map((item, index) => (
+              {(aiInsights?.approachDos || dominantData.dos[language]).map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-green-500">✓</span>
                   <span>{item}</span>
@@ -365,7 +365,7 @@ export default function AnalysisPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 text-red-600">{t('analysis.donts', language)}</h2>
             <ul className="space-y-2">
-              {dominantData.donts[language].map((item, index) => (
+              {(aiInsights?.approachDonts || dominantData.donts[language]).map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-red-500">✗</span>
                   <span>{item}</span>

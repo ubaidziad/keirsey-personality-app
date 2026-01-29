@@ -46,6 +46,8 @@ interface ParticipantData {
   id: string;
   full_name: string;
   email: string;
+  phone?: string;
+  job_title?: string;
   department: string | null;
   dominant_type: PersonalityType;
   secondary_type: PersonalityType;
@@ -56,6 +58,12 @@ interface ParticipantData {
   rational_score: number;
   idealist_score: number;
   artisan_score: number;
+  ai_strengths?: string;
+  ai_weaknesses?: string;
+  ai_career_suggestions?: string;
+  ai_approach_dos?: string;
+  ai_approach_donts?: string;
+  ai_insights_source?: string;
 }
 
 interface StatsData {

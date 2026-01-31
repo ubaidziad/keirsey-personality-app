@@ -208,7 +208,7 @@ export function ParticipantDetailsModal({
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {(aiStrengths || dominantData.strengths[language]).slice(0, 5).map((strength, index) => (
+                {(aiStrengths || dominantData.strengths[language]).slice(0, 5).map((strength: string, index: number) => (
                   <li key={index} className="flex items-start gap-2 text-sm">
                     <span className="text-green-500 mt-0.5">✓</span>
                     <span>{strength}</span>
@@ -231,7 +231,7 @@ export function ParticipantDetailsModal({
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {aiWeaknesses.slice(0, 5).map((weakness, index) => (
+                  {aiWeaknesses.slice(0, 5).map((weakness: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <span className="text-amber-500 mt-0.5">!</span>
                       <span>{weakness}</span>
@@ -254,7 +254,7 @@ export function ParticipantDetailsModal({
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {aiCareerSuggestions.slice(0, 5).map((career, index) => (
+                  {aiCareerSuggestions.slice(0, 5).map((career: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <span className="text-blue-500 mt-0.5">•</span>
                       <span>{career}</span>

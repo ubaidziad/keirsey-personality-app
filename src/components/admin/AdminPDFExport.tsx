@@ -455,9 +455,10 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   return (
     <Button
       variant="outline"
+      size="sm"
       onClick={generatePDF}
       disabled={isExporting}
-      className="gap-2"
+      className="flex items-center gap-2 h-9 px-3"
     >
       <Download className="h-4 w-4" />
       {isExporting 

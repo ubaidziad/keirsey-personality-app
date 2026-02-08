@@ -62,11 +62,24 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Missing participant ID' }, { status: 400 })
     }
 
-    // Delete assessment result (cascades to related data)
-    const { error } = await supabase
+    // The id from the admin panel is the assessment_results.id (from recent_assessments view)
+    // First, find the participant_id from this result
+    const { data: result, error: lookupError } = await supabase
       .from('assessment_results')
-      .delete()
+      .select('participant_id')
       .eq('id', id)
+      .single()
+
+    if (lookupError || !result) {
+      console.error('Error finding participant:', lookupError)
+      return NextResponse.json({ error: 'Assessment result not found' }, { status: 404 })
+    }
+
+    // Delete the participant row — cascades to assessment_sessions, responses, and assessment_results
+    const { error } = await supabase
+      .from('participants')
+      .delete()
+      .eq('id', result.participant_id)
 
     if (error) {
       console.error('Error deleting participant:', error)

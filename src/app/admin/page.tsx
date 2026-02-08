@@ -96,6 +96,9 @@ export default function AdminPage() {
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string>('');
   const [resetEmail, setResetEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+  const pageSize = 20;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -110,6 +113,8 @@ export default function AdminPage() {
       if (filterType !== 'all') params.set('type', filterType);
       if (filterDepartment !== 'all') params.set('department', filterDepartment);
       if (filterOrganization !== 'all') params.set('organization', filterOrganization);
+      params.set('limit', pageSize.toString());
+      params.set('offset', ((currentPage - 1) * pageSize).toString());
 
       const [participantsRes, statsRes] = await Promise.all([
         fetch(`/api/admin/participants?${params}`),
@@ -119,6 +124,7 @@ export default function AdminPage() {
       if (participantsRes.ok) {
         const data = await participantsRes.json();
         setParticipants(data.data || []);
+        setTotalParticipants(data.total || 0);
       }
 
       if (statsRes.ok) {
@@ -138,7 +144,7 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filterType, filterDepartment, filterOrganization]);
+  }, [searchQuery, filterType, filterDepartment, filterOrganization, currentPage]);
 
   useEffect(() => {
     fetchData();
@@ -427,12 +433,12 @@ export default function AdminPage() {
               {language === 'en' ? 'Manage assessments and view analytics' : 'Urus penilaian dan lihat analitik'}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Button
               variant="outline"
               size="sm"
               onClick={toggleLanguage}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-9 px-3"
             >
               <Globe className="h-4 w-4" />
               {language === 'en' ? 'BM' : 'EN'}
@@ -442,7 +448,7 @@ export default function AdminPage() {
               size="sm"
               onClick={fetchData}
               disabled={isLoading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-9 px-3"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
@@ -450,10 +456,10 @@ export default function AdminPage() {
               variant="outline"
               size="sm"
               onClick={exportToCSV}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-9 px-3"
             >
               <FileSpreadsheet className="h-4 w-4" />
-              <span className="hidden sm:inline">{language === 'en' ? 'Export CSV' : 'Eksport CSV'}</span>
+              {language === 'en' ? 'Export CSV' : 'Eksport CSV'}
             </Button>
             {stats && (
               <AdminPDFExport
@@ -467,7 +473,7 @@ export default function AdminPage() {
               variant="outline"
               size="sm"
               onClick={handleLogout}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="flex items-center gap-2 h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" />
               {language === 'en' ? 'Logout' : 'Log Keluar'}
@@ -538,12 +544,12 @@ export default function AdminPage() {
                       <Input
                         placeholder={t('admin.search', language)}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                         className="pl-10"
                       />
                     </div>
                   </div>
-                  <Select value={filterType} onValueChange={setFilterType}>
+                  <Select value={filterType} onValueChange={(v) => { setFilterType(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-full md:w-48">
                       <Filter className="h-4 w-4 mr-2" />
                       <SelectValue placeholder={language === 'en' ? 'Filter by type' : 'Tapis mengikut jenis'} />
@@ -557,7 +563,7 @@ export default function AdminPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={filterOrganization} onValueChange={setFilterOrganization}>
+                  <Select value={filterOrganization} onValueChange={(v) => { setFilterOrganization(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-full md:w-48">
                       <SelectValue placeholder={language === 'en' ? 'Filter by org' : 'Tapis mengikut organisasi'} />
                     </SelectTrigger>
@@ -568,7 +574,7 @@ export default function AdminPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                  <Select value={filterDepartment} onValueChange={(v) => { setFilterDepartment(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-full md:w-48">
                       <SelectValue placeholder={language === 'en' ? 'Filter by dept' : 'Tapis mengikut jabatan'} />
                     </SelectTrigger>
@@ -660,6 +666,37 @@ export default function AdminPage() {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+                {/* Pagination */}
+                {totalParticipants > pageSize && (
+                  <div className="flex items-center justify-between pt-4 border-t mt-4">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en'
+                        ? `Showing ${((currentPage - 1) * pageSize) + 1}–${Math.min(currentPage * pageSize, totalParticipants)} of ${totalParticipants}`
+                        : `Menunjukkan ${((currentPage - 1) * pageSize) + 1}–${Math.min(currentPage * pageSize, totalParticipants)} daripada ${totalParticipants}`}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      >
+                        {language === 'en' ? '← Previous' : '← Sebelum'}
+                      </Button>
+                      <span className="text-sm font-medium px-2">
+                        {currentPage} / {Math.ceil(totalParticipants / pageSize)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage >= Math.ceil(totalParticipants / pageSize)}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                      >
+                        {language === 'en' ? 'Next →' : 'Seterusnya →'}
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>

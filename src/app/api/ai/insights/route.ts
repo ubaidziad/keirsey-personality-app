@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Try AI generation first
-      const aiProvider = createAIProvider('openai');
+      const aiProvider = createAIProvider();
       insights = await aiProvider.generatePersonalityInsights({
         dominantType: dominantType as PersonalityType,
         secondaryType: secondaryType as PersonalityType,

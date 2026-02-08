@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Language, PersonalityType } from './types';
 
 // ============================================
@@ -61,8 +62,8 @@ class OpenAIProvider implements AIProvider {
     };
 
     const systemPrompt = language === 'en' 
-      ? `You are a professional workplace personality assessment advisor. Generate insights based on Keirsey Temperament Theory. Your tone must be professional, workplace-friendly, non-clinical, and non-judgmental. Do not produce discriminatory or sensitive personal claims. Focus on workplace behaviors and team dynamics.`
-      : `Anda adalah penasihat penilaian personaliti profesional di tempat kerja. Hasilkan pandangan berdasarkan Teori Temperamen Keirsey. Nada anda mestilah profesional, mesra di tempat kerja, tidak klinikal, dan tidak menghakimi. Jangan menghasilkan dakwaan diskriminasi atau sensitif peribadi. Fokus pada tingkah laku di tempat kerja dan dinamik pasukan.`;
+      ? `You are a professional workplace personality assessment advisor. Generate insights based on Keirsey Temperament Theory. Your tone must be professional, workplace-friendly, non-clinical, and non-judgmental. Do not produce discriminatory or sensitive personal claims. Focus on workplace behaviors and team dynamics. IMPORTANT: Every response must use unique phrasing and sentence structure. Vary your vocabulary, examples, and wording so that no two participants receive identical text even if they share the same personality type. Make each analysis feel personalised and fresh.`
+      : `Anda adalah penasihat penilaian personaliti profesional di tempat kerja. Hasilkan pandangan berdasarkan Teori Temperamen Keirsey. Nada anda mestilah profesional, mesra di tempat kerja, tidak klinikal, dan tidak menghakimi. Jangan menghasilkan dakwaan diskriminasi atau sensitif peribadi. Fokus pada tingkah laku di tempat kerja dan dinamik pasukan. PENTING: Setiap respons mesti menggunakan ungkapan dan struktur ayat yang unik. Pelbagaikan perbendaharaan kata, contoh, dan perkataan anda supaya tiada dua peserta menerima teks yang sama walaupun mereka berkongsi jenis personaliti yang sama. Jadikan setiap analisis terasa diperibadikan dan segar.`;
 
     const userPrompt = language === 'en'
       ? `Generate personality insights for a workplace assessment:
@@ -123,7 +124,7 @@ Pastikan semua respons ringkas, boleh dilaksanakan, dan fokus kepada tempat kerj
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.7,
+      temperature: 0.9,
       max_tokens: 1500,
     });
 
@@ -178,25 +179,157 @@ Pastikan semua respons ringkas, boleh dilaksanakan, dan fokus kepada tempat kerj
 }
 
 // ============================================
+// GEMINI PROVIDER
+// ============================================
+
+class GeminiProvider implements AIProvider {
+  private client: GoogleGenerativeAI;
+
+  constructor(apiKey: string) {
+    this.client = new GoogleGenerativeAI(apiKey);
+  }
+
+  async generatePersonalityInsights(params: InsightParams): Promise<AIInsightResponse> {
+    const { dominantType, secondaryType, scores, isHybrid, language, jobTitle, department } = params;
+
+    const typeNames = {
+      guardian: language === 'en' ? 'Guardian (Penguasa)' : 'Penguasa (Guardian)',
+      rational: language === 'en' ? 'Rational (Pemikir)' : 'Pemikir (Rational)',
+      idealist: language === 'en' ? 'Idealist (Pemulihara)' : 'Pemulihara (Idealist)',
+      artisan: language === 'en' ? 'Artisan (Penghibur)' : 'Penghibur (Artisan)',
+    };
+
+    const systemPrompt = language === 'en' 
+      ? `You are a professional workplace personality assessment advisor. Generate insights based on Keirsey Temperament Theory. Your tone must be professional, workplace-friendly, non-clinical, and non-judgmental. Do not produce discriminatory or sensitive personal claims. Focus on workplace behaviors and team dynamics. IMPORTANT: Every response must use unique phrasing and sentence structure. Vary your vocabulary, examples, and wording so that no two participants receive identical text even if they share the same personality type. Make each analysis feel personalised and fresh.`
+      : `Anda adalah penasihat penilaian personaliti profesional di tempat kerja. Hasilkan pandangan berdasarkan Teori Temperamen Keirsey. Nada anda mestilah profesional, mesra di tempat kerja, tidak klinikal, dan tidak menghakimi. Jangan menghasilkan dakwaan diskriminasi atau sensitif peribadi. Fokus pada tingkah laku di tempat kerja dan dinamik pasukan. PENTING: Setiap respons mesti menggunakan ungkapan dan struktur ayat yang unik. Pelbagaikan perbendaharaan kata, contoh, dan perkataan anda supaya tiada dua peserta menerima teks yang sama walaupun mereka berkongsi jenis personaliti yang sama. Jadikan setiap analisis terasa diperibadikan dan segar.`;
+
+    const userPrompt = language === 'en'
+      ? `Generate personality insights for a workplace assessment:
+
+**Personality Profile:**
+- Dominant Type: ${typeNames[dominantType]} (${scores[dominantType]}%)
+- Secondary Type: ${typeNames[secondaryType]} (${scores[secondaryType]}%)
+- Hybrid: ${isHybrid ? 'Yes' : 'No'}
+${jobTitle ? `- Job Title: ${jobTitle}` : ''}
+${department ? `- Department: ${department}` : ''}
+
+**Full Scores:**
+- Guardian: ${scores.guardian}%
+- Rational: ${scores.rational}%
+- Idealist: ${scores.idealist}%
+- Artisan: ${scores.artisan}%
+
+Generate the following in JSON format (respond ONLY with valid JSON, no markdown):
+{
+  "strengths": [5 key workplace strengths],
+  "weaknesses": [5 areas for improvement or blind spots],
+  "careerSuggestions": [5 suitable job types or organizational roles],
+  "approachDos": [5 specific do's for managers/colleagues working with this person],
+  "approachDonts": [5 specific don'ts for managers/colleagues]
+}
+
+Keep all responses concise, actionable, and workplace-focused.`
+      : `Hasilkan pandangan personaliti untuk penilaian di tempat kerja:
+
+**Profil Personaliti:**
+- Jenis Dominan: ${typeNames[dominantType]} (${scores[dominantType]}%)
+- Jenis Sekunder: ${typeNames[secondaryType]} (${scores[secondaryType]}%)
+- Hibrid: ${isHybrid ? 'Ya' : 'Tidak'}
+${jobTitle ? `- Jawatan: ${jobTitle}` : ''}
+${department ? `- Jabatan: ${department}` : ''}
+
+**Skor Penuh:**
+- Penguasa: ${scores.guardian}%
+- Pemikir: ${scores.rational}%
+- Pemulihara: ${scores.idealist}%
+- Penghibur: ${scores.artisan}%
+
+Hasilkan yang berikut dalam format JSON (balas HANYA dengan JSON yang sah, tanpa markdown):
+{
+  "strengths": [5 kelebihan utama di tempat kerja],
+  "weaknesses": [5 kawasan untuk penambahbaikan atau titik buta],
+  "careerSuggestions": [5 jenis pekerjaan atau peranan organisasi yang sesuai],
+  "approachDos": [5 perkara yang PATUT dilakukan oleh pengurus/rakan sekerja dengan individu ini],
+  "approachDonts": [5 perkara yang TIDAK PATUT dilakukan oleh pengurus/rakan sekerja]
+}
+
+Pastikan semua respons ringkas, boleh dilaksanakan, dan fokus kepada tempat kerja.`;
+
+    const model = this.client.getGenerativeModel({ 
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.9,
+        maxOutputTokens: 1500,
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const result = await model.generateContent([
+      { text: systemPrompt + '\n\n' + userPrompt },
+    ]);
+
+    const content = result.response.text();
+    if (!content) {
+      throw new Error('No response from Gemini');
+    }
+
+    return JSON.parse(content);
+  }
+
+  async generateTrainingRecommendations(params: TrainingParams): Promise<string[]> {
+    const { distribution, language } = params;
+    const recommendations: string[] = [];
+
+    if (distribution.guardian > 35) {
+      recommendations.push(
+        language === 'en' 
+          ? 'Stress Management Workshop - High Guardian representation indicates need for stress coping strategies'
+          : 'Bengkel Pengurusan Tekanan - Perwakilan tinggi Penguasa menunjukkan keperluan untuk strategi mengatasi tekanan'
+      );
+    }
+    if (distribution.rational > 20) {
+      recommendations.push(
+        language === 'en'
+          ? 'Strategic Leadership & Logic Training - Rational thinkers benefit from advanced strategic planning'
+          : 'Latihan Kepimpinan Strategik & Logik - Pemikir rasional mendapat manfaat daripada perancangan strategik lanjutan'
+      );
+    }
+    if (distribution.idealist > 20) {
+      recommendations.push(
+        language === 'en'
+          ? 'Communication & Emotional Intelligence - Idealists excel with enhanced interpersonal skills'
+          : 'Komunikasi & Kecerdasan Emosi - Pemulihara cemerlang dengan kemahiran interpersonal yang dipertingkatkan'
+      );
+    }
+    if (distribution.artisan > 20) {
+      recommendations.push(
+        language === 'en'
+          ? 'Agility & Innovation Workshop - Artisans thrive in dynamic, creative problem-solving environments'
+          : 'Bengkel Ketangkasan & Inovasi - Penghibur berkembang dalam persekitaran penyelesaian masalah yang dinamik dan kreatif'
+      );
+    }
+    return recommendations;
+  }
+}
+
+// ============================================
 // FACTORY FUNCTION
 // ============================================
 
-export function createAIProvider(provider: 'openai' | 'gemini' = 'openai'): AIProvider {
+export function createAIProvider(provider: 'openai' | 'gemini' = 'gemini'): AIProvider {
+  if (provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY not configured. Add it to your .env file.');
+    }
+    return new GeminiProvider(apiKey);
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
-
   if (!apiKey) {
-    throw new Error('AI API key not configured');
+    throw new Error('OPENAI_API_KEY not configured');
   }
-
-  switch (provider) {
-    case 'openai':
-      return new OpenAIProvider(apiKey);
-    case 'gemini':
-      // TODO: Implement Gemini provider when switching
-      throw new Error('Gemini provider not yet implemented');
-    default:
-      return new OpenAIProvider(apiKey);
-  }
+  return new OpenAIProvider(apiKey);
 }
 
 // ============================================

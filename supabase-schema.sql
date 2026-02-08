@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS participants (
 -- Create index on email for faster lookups
 CREATE INDEX IF NOT EXISTS idx_participants_email ON participants(email);
 CREATE INDEX IF NOT EXISTS idx_participants_department ON participants(department);
+CREATE INDEX IF NOT EXISTS idx_participants_organization ON participants(organization);
 CREATE INDEX IF NOT EXISTS idx_participants_created_at ON participants(created_at DESC);
 
 -- ============================================
@@ -156,6 +157,7 @@ SELECT
   p.phone,
   p.job_title,
   p.department,
+  p.organization,
   ar.dominant_type,
   ar.secondary_type,
   ar.is_hybrid,

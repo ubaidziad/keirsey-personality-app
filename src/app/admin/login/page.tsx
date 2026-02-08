@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Globe } from 'lucide-react';
+import { useAssessmentStore } from '@/lib/store';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { language, setLanguage } = useAssessmentStore();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -43,13 +45,24 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLanguage(language === 'en' ? 'ms' : 'en')}
+          className="gap-2"
+        >
+          <Globe className="h-4 w-4" />
+          {language === 'en' ? 'BM' : 'EN'}
+        </Button>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Lock className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-          <p className="text-gray-500 mt-2">Sign in to access the admin dashboard</p>
+          <CardTitle className="text-2xl font-bold">{language === 'en' ? 'Admin Login' : 'Log Masuk Pentadbir'}</CardTitle>
+          <p className="text-gray-500 mt-2">{language === 'en' ? 'Sign in to access the admin dashboard' : 'Log masuk untuk mengakses panel pentadbir'}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -62,7 +75,7 @@ export default function AdminLoginPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                {language === 'en' ? 'Email Address' : 'Alamat E-mel'}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -81,7 +94,7 @@ export default function AdminLoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                {language === 'en' ? 'Password' : 'Kata Laluan'}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -106,10 +119,10 @@ export default function AdminLoginPage() {
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
+                  {language === 'en' ? 'Signing in...' : 'Sedang log masuk...'}
                 </div>
               ) : (
-                'Sign In'
+                language === 'en' ? 'Sign In' : 'Log Masuk'
               )}
             </Button>
           </form>
@@ -119,7 +132,7 @@ export default function AdminLoginPage() {
               href="/" 
               className="text-sm text-blue-600 hover:text-blue-700"
             >
-              ← Back to Assessment
+              {language === 'en' ? '← Back to Assessment' : '← Kembali ke Penilaian'}
             </a>
           </div>
         </CardContent>

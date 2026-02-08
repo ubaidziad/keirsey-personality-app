@@ -10,16 +10,86 @@ import { Language } from '@/lib/types';
 
 export default function LandingPage() {
   const router = useRouter();
-  const { language, setLanguage } = useAssessmentStore();
+  const { language, setLanguage, resetAssessment } = useAssessmentStore();
+  const [languageSelected, setLanguageSelected] = useState(false);
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'ms' : 'en');
+  const handleSelectLanguage = (lang: Language) => {
+    setLanguage(lang);
+    setLanguageSelected(true);
   };
 
   const handleGetStarted = () => {
+    // Auto-reset any previous session so users can retake easily
+    resetAssessment();
     router.push('/register');
   };
 
+  // Step 1: Language Selection Screen
+  if (!languageSelected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="max-w-lg mx-auto text-center px-4">
+          <div className="flex justify-center mb-8">
+            <div className="p-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
+              <Brain className="h-16 w-16 text-white" />
+            </div>
+          </div>
+
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-gray-800 dark:text-gray-100">
+            Keirsey Personality Assessment
+          </h1>
+          <p className="text-lg text-gray-500 dark:text-gray-400 mb-10">
+            Penilaian Personaliti Keirsey
+          </p>
+
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            Choose Your Language / Pilih Bahasa Anda
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">
+            Select the language you prefer for this assessment
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <button
+              onClick={() => handleSelectLanguage('en')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all hover:shadow-lg bg-white dark:bg-gray-800 text-left"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">🇬🇧</span>
+                <span className="text-xl font-bold text-gray-800 dark:text-gray-100">English</span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Take the assessment in English
+              </p>
+            </button>
+
+            <button
+              onClick={() => handleSelectLanguage('ms')}
+              className="group p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 transition-all hover:shadow-lg bg-white dark:bg-gray-800 text-left"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">🇲🇾</span>
+                <span className="text-xl font-bold text-gray-800 dark:text-gray-100">Bahasa Melayu</span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Ambil penilaian dalam Bahasa Melayu
+              </p>
+            </button>
+          </div>
+
+          <button
+            onClick={() => router.push('/admin/login')}
+            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <Shield className="h-4 w-4 inline mr-1" />
+            Admin Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Main Landing Page (after language is selected)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Language Toggle */}
@@ -27,7 +97,7 @@ export default function LandingPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={toggleLanguage}
+          onClick={() => setLanguage(language === 'en' ? 'ms' : 'en')}
           className="gap-2 bg-white/80 backdrop-blur-sm dark:bg-gray-800/80"
         >
           <Globe className="h-4 w-4" />
@@ -36,7 +106,7 @@ export default function LandingPage() {
       </div>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 md:py-32">
+      <section className="container mx-auto px-4 py-20 md:py-28">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
@@ -64,16 +134,6 @@ export default function LandingPage() {
             >
               {language === 'en' ? 'Get Started' : 'Mulakan'}
               <ArrowRight className="h-5 w-5" />
-            </Button>
-            
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => router.push('/admin/login')}
-              className="gap-2 text-lg px-8 py-6"
-            >
-              <Shield className="h-5 w-5" />
-              {language === 'en' ? 'Admin Login' : 'Log Masuk Pentadbir'}
             </Button>
           </div>
 
@@ -264,6 +324,13 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 text-center text-gray-500 dark:text-gray-400">
         <p>© 2026 Keirsey Personality Assessment. {language === 'en' ? 'All rights reserved.' : 'Hak cipta terpelihara.'}</p>
+        <button
+          onClick={() => router.push('/admin/login')}
+          className="mt-3 inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        >
+          <Shield className="h-4 w-4" />
+          {language === 'en' ? 'Admin Panel' : 'Panel Pentadbir'}
+        </button>
       </footer>
     </div>
   );

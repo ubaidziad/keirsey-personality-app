@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Download, Briefcase, ThumbsUp, ThumbsDown, CheckCircle, XCircle, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// Tabs removed - using single scrollable view
 import { useAssessmentStore } from '@/lib/store';
 import { t } from '@/lib/translations';
 import { allQuestions } from '@/lib/questions';
@@ -207,150 +207,116 @@ export default function AnalysisPage() {
           )}
         </div>
 
-        {/* Content Tabs */}
-        <Tabs defaultValue="strengths" className="print:hidden">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="strengths">{t('analysis.strengths', language)}</TabsTrigger>
-            <TabsTrigger value="weaknesses">{t('analysis.weaknesses', language)}</TabsTrigger>
-            <TabsTrigger value="careers">{t('analysis.careers', language)}</TabsTrigger>
-            <TabsTrigger value="approach">{t('analysis.approach', language)}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="strengths">
-            <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-600">
-                  <ThumbsUp className="h-5 w-5" />
-                  {t('analysis.strengths', language)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insightsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-                  </div>
-                ) : (
+        {/* Full Analysis - Single Scrollable View */}
+        <div className="space-y-6 print:hidden">
+          {insightsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            </div>
+          ) : (
+            <>
+              {/* Strengths */}
+              <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-600">
+                    <ThumbsUp className="h-5 w-5" />
+                    {t('analysis.strengths', language)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <ul className="space-y-3">
-                    {(aiInsights?.strengths || dominantData.strengths[language]).map((item, index) => (
+                    {(aiInsights?.strengths || dominantData.strengths[language]).map((item: string, index: number) => (
                       <li key={index} className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                         <span className="text-gray-700 dark:text-gray-300">{item}</span>
                       </li>
                     ))}
                   </ul>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="weaknesses">
-            <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-600">
-                  <ThumbsDown className="h-5 w-5" />
-                  {t('analysis.weaknesses', language)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insightsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600" />
-                  </div>
-                ) : (
+              {/* Areas for Development */}
+              <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-600">
+                    <ThumbsDown className="h-5 w-5" />
+                    {language === 'en' ? 'Areas for Development' : 'Bidang Pembangunan'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <ul className="space-y-3">
-                    {(aiInsights?.weaknesses || dominantData.weaknesses[language]).map((item, index) => (
+                    {(aiInsights?.weaknesses || dominantData.weaknesses[language]).map((item: string, index: number) => (
                       <li key={index} className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                        <XCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                         <span className="text-gray-700 dark:text-gray-300">{item}</span>
                       </li>
                     ))}
                   </ul>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="careers">
-            <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-600">
-                  <Briefcase className="h-5 w-5" />
-                  {t('analysis.careers', language)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insightsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-                  </div>
-                ) : (
+              {/* Career Suggestions */}
+              <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-600">
+                    <Briefcase className="h-5 w-5" />
+                    {t('analysis.careers', language)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {(aiInsights?.careerSuggestions || dominantData.careers[language]).map((item, index) => (
+                    {(aiInsights?.careerSuggestions || dominantData.careers[language]).map((item: string, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="w-2 h-2 rounded-full bg-blue-500" />
                         <span className="text-gray-700 dark:text-gray-300">{item}</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="approach">
-            <div className="space-y-6">
+              {/* Communication Do's */}
               <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-5 w-5" />
-                    {t('analysis.dos', language)}
+                    {language === 'en' ? 'Communication Do\'s' : 'Perkara Yang Perlu'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {insightsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-                    </div>
-                  ) : (
-                    <ul className="space-y-3">
-                      {(aiInsights?.approachDos || dominantData.dos[language]).map((item, index) => (
-                        <li key={index} className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                          <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-700 dark:text-gray-300">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ul className="space-y-3">
+                    {(aiInsights?.approachDos || dominantData.dos[language]).map((item: string, index: number) => (
+                      <li key={index} className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
 
+              {/* Communication Don'ts */}
               <Card className="shadow-lg border-0 bg-white/90 dark:bg-gray-800/90">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-red-600">
                     <XCircle className="h-5 w-5" />
-                    {t('analysis.donts', language)}
+                    {language === 'en' ? 'Communication Don\'ts' : 'Perkara Yang Tidak Perlu'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {insightsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
-                    </div>
-                  ) : (
-                    <ul className="space-y-3">
-                      {(aiInsights?.approachDonts || dominantData.donts[language]).map((item, index) => (
-                        <li key={index} className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                          <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-700 dark:text-gray-300">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ul className="space-y-3">
+                    {(aiInsights?.approachDonts || dominantData.donts[language]).map((item: string, index: number) => (
+                      <li key={index} className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                        <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </>
+          )}
+        </div>
 
         {/* Print View - Shows all sections */}
         <div className="hidden print:block space-y-6">

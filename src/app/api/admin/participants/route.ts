@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || ''
     const type = searchParams.get('type') || 'all'
     const department = searchParams.get('department') || 'all'
+    const organization = searchParams.get('organization') || 'all'
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -26,6 +27,10 @@ export async function GET(request: Request) {
 
     if (department !== 'all') {
       query = query.eq('department', department)
+    }
+
+    if (organization !== 'all') {
+      query = query.eq('organization', organization)
     }
 
     const { data, error, count } = await query

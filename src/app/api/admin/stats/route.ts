@@ -25,6 +25,13 @@ export async function GET() {
       .from('department_breakdown')
       .select('*')
 
+    // Get unique organizations
+    const { data: orgData } = await supabase
+      .from('participants')
+      .select('organization')
+      .not('organization', 'is', null)
+      .not('organization', 'eq', '')
+
     // Format distribution as record
     const distributionRecord: Record<string, number> = {
       guardian: 0,
@@ -39,11 +46,15 @@ export async function GET() {
       })
     }
 
+    // Deduplicate organizations
+    const uniqueOrgs = [...new Set((orgData || []).map((o: { organization: string }) => o.organization).filter(Boolean))] as string[]
+
     return NextResponse.json({
       totalParticipants: totalParticipants || 0,
       completedAssessments: completedAssessments || 0,
       distribution: distributionRecord,
-      departments: departments || []
+      departments: departments || [],
+      organizations: uniqueOrgs.sort()
     })
   } catch (error) {
     console.error('Error in stats API:', error)

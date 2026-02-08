@@ -82,6 +82,7 @@ export default function ResultsPage() {
             phone: participant.phone,
             job_title: participant.job_title,
             department: participant.department,
+            organization: participant.organization,
           },
           language,
           questionOrder: Object.keys(responses).map(Number),
@@ -396,14 +397,6 @@ export default function ResultsPage() {
           >
             {t('results.viewDetails', language)}
             <ArrowRight className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 h-12 px-8"
-            onClick={() => window.print()}
-          >
-            <Download className="h-5 w-5" />
-            {t('analysis.downloadPdf', language)}
           </Button>
         </div>
 

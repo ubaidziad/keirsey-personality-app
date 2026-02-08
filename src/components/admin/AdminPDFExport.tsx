@@ -226,7 +226,8 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   <!-- Header -->
   <div class="header">
     <div class="header-info">
-      <h1>${language === 'en' ? 'Assessment Analytics Report' : 'Laporan Analitik Penilaian'}</h1>
+      <h1>${language === 'en' ? 'Keirsey Personality Assessment Report' : 'Laporan Penilaian Personaliti Keirsey'}</h1>
+      <p>${language === 'en' ? 'Prepared for HR / Management Review' : 'Disediakan untuk Semakan HR / Pengurusan'}</p>
       <p>${language === 'en' ? 'Generated on' : 'Dijana pada'} ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { 
         year: 'numeric', 
         month: 'long', 
@@ -240,21 +241,68 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
     ` : ''}
   </div>
 
-  <!-- Summary Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <h3>${language === 'en' ? 'Total Participants' : 'Jumlah Peserta'}</h3>
-      <p class="value">${stats.totalParticipants}</p>
-    </div>
-    <div class="stat-card">
-      <h3>${language === 'en' ? 'Completed Assessments' : 'Penilaian Selesai'}</h3>
-      <p class="value">${stats.completedAssessments}</p>
+  <!-- 1. Introduction -->
+  <div class="section">
+    <h2 class="section-title">${language === 'en' ? '1. Introduction & Purpose' : '1. Pengenalan & Tujuan'}</h2>
+    <p style="color: #374151; font-size: 14px; line-height: 1.8;">
+      ${language === 'en' 
+        ? 'This report presents the findings from the Keirsey Personality Assessment conducted for the organisation. The purpose of this assessment is to help HR, management, and training teams understand the personality composition of the workforce, enabling more effective team building, communication strategies, and professional development planning.'
+        : 'Laporan ini membentangkan penemuan daripada Penilaian Personaliti Keirsey yang dijalankan untuk organisasi. Tujuan penilaian ini adalah untuk membantu HR, pengurusan, dan pasukan latihan memahami komposisi personaliti tenaga kerja, membolehkan pembinaan pasukan, strategi komunikasi, dan perancangan pembangunan profesional yang lebih berkesan.'}
+    </p>
+  </div>
+
+  <!-- 2. About Keirsey Theory -->
+  <div class="section">
+    <h2 class="section-title">${language === 'en' ? '2. About Keirsey Temperament Theory' : '2. Mengenai Teori Perangai Keirsey'}</h2>
+    <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
+      ${language === 'en'
+        ? 'The Keirsey Temperament Sorter, developed by Dr. David Keirsey, categorises individuals into four primary temperament types based on observable behaviour patterns. Each type reflects distinct communication styles, work preferences, and interpersonal strengths:'
+        : 'Pengisih Perangai Keirsey, dibangunkan oleh Dr. David Keirsey, mengkategorikan individu kepada empat jenis perangai utama berdasarkan corak tingkah laku yang boleh diperhatikan. Setiap jenis mencerminkan gaya komunikasi, keutamaan kerja, dan kekuatan interpersonal yang berbeza:'}
+    </p>
+    <table class="participants-table" style="margin-bottom: 0;">
+      <thead><tr>
+        <th style="width: 25%;">${language === 'en' ? 'Temperament' : 'Perangai'}</th>
+        <th>${language === 'en' ? 'Key Characteristics' : 'Ciri-ciri Utama'}</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="type-badge" style="background-color: ${personalityTypeColors.guardian}">${personalityTypeData.guardian.name[language]}</span></td>
+          <td style="font-size: 13px;">${language === 'en' ? 'Dependable, detail-oriented, loyal. Excel in roles requiring stability, process management, and compliance.' : 'Boleh dipercayai, teliti, setia. Cemerlang dalam peranan yang memerlukan kestabilan, pengurusan proses, dan pematuhan.'}</td>
+        </tr>
+        <tr>
+          <td><span class="type-badge" style="background-color: ${personalityTypeColors.rational}">${personalityTypeData.rational.name[language]}</span></td>
+          <td style="font-size: 13px;">${language === 'en' ? 'Strategic, analytical, innovative. Excel in roles requiring problem-solving, research, and systems design.' : 'Strategik, analitikal, inovatif. Cemerlang dalam peranan yang memerlukan penyelesaian masalah, penyelidikan, dan reka bentuk sistem.'}</td>
+        </tr>
+        <tr>
+          <td><span class="type-badge" style="background-color: ${personalityTypeColors.idealist}">${personalityTypeData.idealist.name[language]}</span></td>
+          <td style="font-size: 13px;">${language === 'en' ? 'Empathetic, inspiring, growth-oriented. Excel in roles requiring coaching, counselling, and team motivation.' : 'Empatik, memberi inspirasi, berorientasikan pertumbuhan. Cemerlang dalam peranan yang memerlukan bimbingan, kaunseling, dan motivasi pasukan.'}</td>
+        </tr>
+        <tr>
+          <td><span class="type-badge" style="background-color: ${personalityTypeColors.artisan}">${personalityTypeData.artisan.name[language]}</span></td>
+          <td style="font-size: 13px;">${language === 'en' ? 'Adaptable, action-oriented, resourceful. Excel in roles requiring flexibility, crisis management, and hands-on work.' : 'Boleh menyesuaikan diri, berorientasikan tindakan, bijak. Cemerlang dalam peranan yang memerlukan fleksibiliti, pengurusan krisis, dan kerja praktikal.'}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. Summary Stats -->
+  <div class="section">
+    <h2 class="section-title">${language === 'en' ? '3. Overall Summary' : '3. Ringkasan Keseluruhan'}</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>${language === 'en' ? 'Total Participants' : 'Jumlah Peserta'}</h3>
+        <p class="value">${stats.totalParticipants}</p>
+      </div>
+      <div class="stat-card">
+        <h3>${language === 'en' ? 'Completed Assessments' : 'Penilaian Selesai'}</h3>
+        <p class="value">${stats.completedAssessments}</p>
+      </div>
     </div>
   </div>
 
-  <!-- Personality Distribution -->
+  <!-- 4. Personality Distribution -->
   <div class="section">
-    <h2 class="section-title">${language === 'en' ? 'Personality Type Distribution' : 'Taburan Jenis Personaliti'}</h2>
+    <h2 class="section-title">${language === 'en' ? '4. Personality Type Distribution' : '4. Taburan Jenis Personaliti'}</h2>
     <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
       ${language === 'en' 
         ? 'Distribution of dominant personality types among all participants' 
@@ -285,9 +333,9 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   </div>
 
   ${stats.departments && stats.departments.length > 0 ? `
-  <!-- Department Breakdown -->
+  <!-- 5. Department Breakdown -->
   <div class="section">
-    <h2 class="section-title">${language === 'en' ? 'Department Breakdown' : 'Pecahan Jabatan'}</h2>
+    <h2 class="section-title">${language === 'en' ? '5. Department Breakdown' : '5. Pecahan Jabatan'}</h2>
     <table class="participants-table">
       <thead>
         <tr>
@@ -310,48 +358,79 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   ` : ''}
 
   ${participants && participants.length > 0 ? `
-  <!-- Participant List -->
+  <!-- 6. Participant Details -->
   <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? 'Participant Details' : 'Butiran Peserta'}</h2>
+    <h2 class="section-title">${language === 'en' ? '6. Individual Participant Analysis' : '6. Analisis Peserta Individu'}</h2>
     <table class="participants-table">
       <thead>
         <tr>
           <th>${language === 'en' ? 'Name' : 'Nama'}</th>
-          <th>${language === 'en' ? 'Email' : 'E-mel'}</th>
+          <th>${language === 'en' ? 'Organisation' : 'Organisasi'}</th>
           <th>${language === 'en' ? 'Department' : 'Jabatan'}</th>
           <th>${language === 'en' ? 'Type' : 'Jenis'}</th>
+          <th>MBTI</th>
           <th style="text-align: center;">${language === 'en' ? 'Date' : 'Tarikh'}</th>
         </tr>
       </thead>
       <tbody>
-        ${participants.slice(0, 50).map(p => {
+        ${participants.slice(0, 100).map(p => {
           const typeColor = personalityTypeColors[p.dominant_type as PersonalityType];
           const typeName = personalityTypeData[p.dominant_type as PersonalityType].name[language];
           return `
           <tr>
             <td><strong>${p.full_name}</strong></td>
-            <td>${p.email}</td>
+            <td>${p.organization || '-'}</td>
             <td>${p.department || '-'}</td>
             <td>
               <span class="type-badge" style="background-color: ${typeColor}">
                 ${typeName}
               </span>
             </td>
+            <td style="font-family: monospace; font-weight: 600;">${p.mbti_code || '-'}</td>
             <td style="text-align: center;">${new Date(p.created_at).toLocaleDateString()}</td>
           </tr>
         `;
         }).join('')}
       </tbody>
     </table>
-    ${participants.length > 50 ? `
+    ${participants.length > 100 ? `
     <p style="margin-top: 15px; color: #6b7280; font-style: italic;">
       ${language === 'en' 
-        ? `Showing first 50 of ${participants.length} participants` 
-        : `Menunjukkan 50 pertama daripada ${participants.length} peserta`}
+        ? `Showing first 100 of ${participants.length} participants` 
+        : `Menunjukkan 100 pertama daripada ${participants.length} peserta`}
     </p>
     ` : ''}
   </div>
   ` : ''}
+
+  <!-- 7. Conclusion -->
+  <div class="section page-break">
+    <h2 class="section-title">${language === 'en' ? '7. Conclusion & Interpretation Notes' : '7. Kesimpulan & Nota Interpretasi'}</h2>
+    <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
+      ${language === 'en'
+        ? 'Based on the assessment results, the following observations and recommendations are provided for HR and management consideration:'
+        : 'Berdasarkan keputusan penilaian, pemerhatian dan cadangan berikut disediakan untuk pertimbangan HR dan pengurusan:'}
+    </p>
+    <ul style="color: #374151; font-size: 14px; line-height: 2; padding-left: 20px;">
+      <li>${language === 'en'
+        ? 'The personality distribution provides insight into team dynamics and communication preferences across the organisation.'
+        : 'Taburan personaliti memberikan pandangan tentang dinamik pasukan dan keutamaan komunikasi di seluruh organisasi.'}</li>
+      <li>${language === 'en'
+        ? 'Consider leveraging the dominant personality types when assigning roles and forming project teams.'
+        : 'Pertimbangkan untuk memanfaatkan jenis personaliti dominan ketika memberikan peranan dan membentuk pasukan projek.'}</li>
+      <li>${language === 'en'
+        ? 'Training programs can be tailored based on the temperament mix to maximise engagement and effectiveness.'
+        : 'Program latihan boleh disesuaikan berdasarkan campuran perangai untuk memaksimumkan penglibatan dan keberkesanan.'}</li>
+      <li>${language === 'en'
+        ? 'Individual results should be used as a development tool, not as a basis for performance evaluation.'
+        : 'Keputusan individu harus digunakan sebagai alat pembangunan, bukan sebagai asas untuk penilaian prestasi.'}</li>
+    </ul>
+    <p style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+      ${language === 'en'
+        ? 'Disclaimer: This assessment is based on the Keirsey Temperament Sorter framework. Results should be interpreted as general tendencies rather than absolute classifications. Individual behaviour may vary depending on context and circumstances.'
+        : 'Penafian: Penilaian ini berdasarkan rangka kerja Pengisih Perangai Keirsey. Keputusan harus ditafsirkan sebagai kecenderungan umum dan bukan klasifikasi mutlak. Tingkah laku individu mungkin berbeza bergantung pada konteks dan keadaan.'}
+    </p>
+  </div>
 
   <!-- Footer -->
   <div class="footer">

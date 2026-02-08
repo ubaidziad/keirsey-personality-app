@@ -22,7 +22,10 @@ export default function RegisterPage() {
     email: '',
     job_title: '',
     department: '',
+    organization: '',
   });
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -40,6 +43,9 @@ export default function RegisterPage() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = language === 'en' ? 'Invalid email format' : 'Format e-mel tidak sah';
     }
+    if (!formData.organization.trim()) {
+      newErrors.organization = language === 'en' ? 'Organisation name is required' : 'Nama organisasi diperlukan';
+    }
     if (!formData.job_title.trim()) {
       newErrors.job_title = language === 'en' ? 'Job title is required' : 'Jawatan diperlukan';
     }
@@ -51,10 +57,28 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
+
+    // Check if email already has a completed assessment
+    setEmailChecking(true);
+    try {
+      const res = await fetch(`/api/check-email?email=${encodeURIComponent(formData.email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.exists) {
+          setEmailExists(true);
+          setEmailChecking(false);
+          return;
+        }
+      }
+    } catch {
+      // If check fails, proceed anyway
+    }
+    setEmailChecking(false);
+    setEmailExists(false);
 
     const participant = {
       id: crypto.randomUUID(),
@@ -180,6 +204,21 @@ export default function RegisterPage() {
                 )}
               </div>
 
+              {/* Organisation Name */}
+              <div className="space-y-2">
+                <Label htmlFor="organization">{language === 'en' ? 'Organisation Name' : 'Nama Organisasi'} *</Label>
+                <Input
+                  id="organization"
+                  value={formData.organization}
+                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                  placeholder={language === 'en' ? 'ABC Sdn Bhd' : 'ABC Sdn Bhd'}
+                  className={errors.organization ? 'border-red-500' : ''}
+                />
+                {errors.organization && (
+                  <p className="text-sm text-red-500">{errors.organization}</p>
+                )}
+              </div>
+
               {/* Department */}
               <div className="space-y-2">
                 <Label htmlFor="department">{language === 'en' ? 'Department' : 'Jabatan'}</Label>
@@ -190,6 +229,17 @@ export default function RegisterPage() {
                   placeholder={language === 'en' ? 'Engineering' : 'Kejuruteraan'}
                 />
               </div>
+
+              {/* Email Already Exists Warning */}
+              {emailExists && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-300 dark:border-amber-700">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                    {language === 'en'
+                      ? 'This email has already been used to complete an assessment. Each email can only be used once. Please contact your administrator if you need to retake the test.'
+                      : 'E-mel ini telah digunakan untuk melengkapkan penilaian. Setiap e-mel hanya boleh digunakan sekali. Sila hubungi pentadbir anda jika anda perlu mengambil semula ujian.'}
+                  </p>
+                </div>
+              )}
 
               {/* Consent */}
               <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -221,9 +271,12 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 size="lg"
+                disabled={emailChecking}
                 className="w-full gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-{language === 'en' ? 'Start Assessment' : 'Mulakan Penilaian'}
+                {emailChecking 
+                  ? (language === 'en' ? 'Checking...' : 'Menyemak...')
+                  : (language === 'en' ? 'Start Assessment' : 'Mulakan Penilaian')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </form>

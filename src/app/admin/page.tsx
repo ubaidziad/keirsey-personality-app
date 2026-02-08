@@ -50,6 +50,7 @@ interface ParticipantData {
   phone?: string;
   job_title?: string;
   department: string | null;
+  organization?: string;
   dominant_type: PersonalityType;
   secondary_type: PersonalityType;
   is_hybrid: boolean;
@@ -72,6 +73,7 @@ interface StatsData {
   completedAssessments: number;
   distribution: Record<PersonalityType, number>;
   departments: Array<{ department: string; participant_count: number; completed_assessments: number }>;
+  organizations?: string[];
 }
 
 export default function AdminPage() {
@@ -81,6 +83,7 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
+  const [filterOrganization, setFilterOrganization] = useState<string>('all');
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,6 +94,8 @@ export default function AdminPage() {
   const [participantToDelete, setParticipantToDelete] = useState<ParticipantData | null>(null);
   const [logoModalOpen, setLogoModalOpen] = useState(false);
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string>('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -104,6 +109,7 @@ export default function AdminPage() {
       if (searchQuery) params.set('search', searchQuery);
       if (filterType !== 'all') params.set('type', filterType);
       if (filterDepartment !== 'all') params.set('department', filterDepartment);
+      if (filterOrganization !== 'all') params.set('organization', filterOrganization);
 
       const [participantsRes, statsRes] = await Promise.all([
         fetch(`/api/admin/participants?${params}`),
@@ -132,7 +138,7 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filterType, filterDepartment]);
+  }, [searchQuery, filterType, filterDepartment, filterOrganization]);
 
   useEffect(() => {
     fetchData();
@@ -158,7 +164,7 @@ export default function AdminPage() {
 
     setIsDeleting(participantToDelete.id);
     try {
-      const response = await fetch(`/api/admin/participants/${participantToDelete.id}`, {
+      const response = await fetch(`/api/admin/participants?id=${participantToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -260,12 +266,14 @@ export default function AdminPage() {
 
   const distribution = stats?.distribution || { guardian: 0, rational: 0, idealist: 0, artisan: 0 };
   const departments = stats?.departments?.map(d => d.department).filter(Boolean) || [];
+  const organizations = stats?.organizations || [...new Set(participants.map(p => p.organization).filter(Boolean))] as string[];
   const recommendations = getTrainingRecommendations(distribution, language);
 
   const exportToCSV = () => {
     const headers = [
       language === 'en' ? 'Name' : 'Nama',
       language === 'en' ? 'Email' : 'E-mel',
+      language === 'en' ? 'Organisation' : 'Organisasi',
       language === 'en' ? 'Department' : 'Jabatan',
       language === 'en' ? 'Personality Type' : 'Jenis Personaliti',
       language === 'en' ? 'Secondary Type' : 'Jenis Kedua',
@@ -280,6 +288,7 @@ export default function AdminPage() {
     const rows = participants.map(p => [
       p.full_name,
       p.email,
+      p.organization || '-',
       p.department || '-',
       personalityTypeData[p.dominant_type].name[language],
       personalityTypeData[p.secondary_type].name[language],
@@ -302,6 +311,107 @@ export default function AdminPage() {
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'ms' : 'en');
+  };
+
+  const openIndividualReport = (p: ParticipantData) => {
+    const typeColor = personalityTypeColors[p.dominant_type];
+    const typeName = personalityTypeData[p.dominant_type].name[language];
+    const secondaryName = personalityTypeData[p.secondary_type].name[language];
+    const aiStrengths = p.ai_strengths ? JSON.parse(p.ai_strengths) : personalityTypeData[p.dominant_type].strengths[language];
+    const aiWeaknesses = p.ai_weaknesses ? JSON.parse(p.ai_weaknesses) : personalityTypeData[p.dominant_type].weaknesses[language];
+    const aiCareers = p.ai_career_suggestions ? JSON.parse(p.ai_career_suggestions) : personalityTypeData[p.dominant_type].careers[language];
+    const aiDos = p.ai_approach_dos ? JSON.parse(p.ai_approach_dos) : personalityTypeData[p.dominant_type].dos[language];
+    const aiDonts = p.ai_approach_donts ? JSON.parse(p.ai_approach_donts) : personalityTypeData[p.dominant_type].donts[language];
+    const scores = [
+      { name: personalityTypeData.guardian.name[language], value: p.guardian_score, color: personalityTypeColors.guardian },
+      { name: personalityTypeData.rational.name[language], value: p.rational_score, color: personalityTypeColors.rational },
+      { name: personalityTypeData.idealist.name[language], value: p.idealist_score, color: personalityTypeColors.idealist },
+      { name: personalityTypeData.artisan.name[language], value: p.artisan_score, color: personalityTypeColors.artisan },
+    ].sort((a, b) => b.value - a.value);
+
+    const win = window.open('about:blank#report-' + p.id, '_blank');
+    if (!win) { alert('Please allow popups'); return; }
+
+    const listItems = (items: string[], icon: string, color: string) =>
+      items.slice(0, 5).map((item: string) => `<li style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${color}08;border-radius:8px;margin-bottom:8px;"><span style="color:${color};font-size:18px;flex-shrink:0;">${icon}</span><span style="color:#374151;font-size:14px;">${item}</span></li>`).join('');
+
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${p.full_name} - ${language === 'en' ? 'Individual Report' : 'Laporan Individu'}</title>
+<style>
+  @page { margin: 20mm; size: A4; }
+  body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; line-height:1.6; color:#333; print-color-adjust:exact; -webkit-print-color-adjust:exact; max-width:800px; margin:0 auto; padding:40px 20px; }
+  .page-break { page-break-before: always; }
+  .section { margin-bottom: 30px; }
+  .section-title { font-size:20px; font-weight:700; color:#1f2937; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid #e5e7eb; }
+  ul { list-style:none; padding:0; margin:0; }
+  .header { text-align:center; padding-bottom:24px; border-bottom:3px solid ${typeColor}; margin-bottom:30px; }
+  .score-bar { height:24px; border-radius:6px; margin-top:4px; }
+  .print-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 24px; background:${typeColor}; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:30px; }
+  .print-btn:hover { opacity:0.9; }
+  @media print { .no-print { display:none !important; } }
+</style></head><body>
+
+<div class="no-print" style="text-align:center;margin-bottom:10px;">
+  <button class="print-btn" onclick="window.print()">&#128438; ${language === 'en' ? 'Download PDF / Print' : 'Muat Turun PDF / Cetak'}</button>
+</div>
+
+<div class="header">
+  <h1 style="margin:0 0 4px 0;font-size:28px;color:${typeColor};">${p.full_name}</h1>
+  <p style="margin:0;color:#6b7280;font-size:14px;">${p.email}${p.organization ? ' | ' + p.organization : ''}${p.department ? ' | ' + p.department : ''}</p>
+  <p style="margin:8px 0 0 0;font-size:13px;color:#9ca3af;">${language === 'en' ? 'Assessment Date:' : 'Tarikh Penilaian:'} ${new Date(p.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', { year:'numeric',month:'long',day:'numeric' })}</p>
+</div>
+
+<!-- Personality Type -->
+<div class="section">
+  <h2 class="section-title">${language === 'en' ? 'Personality Profile' : 'Profil Personaliti'}</h2>
+  <div style="text-align:center;padding:20px;background:linear-gradient(135deg,${typeColor}10,${typeColor}05);border-radius:12px;border:2px solid ${typeColor}30;">
+    <p style="font-size:32px;font-weight:700;color:${typeColor};margin:0;">${typeName}${p.is_hybrid ? ' + ' + secondaryName : ''}</p>
+    <p style="font-size:18px;color:#6b7280;margin:8px 0 0 0;">MBTI: <strong>${p.mbti_code}</strong></p>
+    ${p.is_hybrid ? `<p style="font-size:13px;color:#d97706;margin-top:8px;">⚡ ${language === 'en' ? 'Hybrid Profile' : 'Profil Hibrid'}</p>` : ''}
+  </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="section">
+  <h2 class="section-title">${language === 'en' ? 'Score Breakdown' : 'Pecahan Skor'}</h2>
+  ${scores.map(s => `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:14px;"><span style="font-weight:600;">${s.name}</span><span style="font-weight:700;">${s.value.toFixed(1)}%</span></div><div style="width:100%;background:#f3f4f6;border-radius:6px;height:24px;"><div class="score-bar" style="width:${s.value}%;background:${s.color};"></div></div></div>`).join('')}
+</div>
+
+<!-- Strengths -->
+<div class="section page-break">
+  <h2 class="section-title">${language === 'en' ? 'Key Strengths' : 'Kelebihan Utama'}</h2>
+  <ul>${listItems(aiStrengths, '✓', '#16a34a')}</ul>
+</div>
+
+<!-- Areas for Development -->
+<div class="section">
+  <h2 class="section-title">${language === 'en' ? 'Areas for Development' : 'Bidang Pembangunan'}</h2>
+  <ul>${listItems(aiWeaknesses, '!', '#d97706')}</ul>
+</div>
+
+<!-- Career Suggestions -->
+<div class="section page-break">
+  <h2 class="section-title">${language === 'en' ? 'Career Suggestions' : 'Cadangan Kerjaya'}</h2>
+  <ul>${listItems(aiCareers, '•', '#2563eb')}</ul>
+</div>
+
+<!-- Communication Do's -->
+<div class="section">
+  <h2 class="section-title">${language === 'en' ? "Communication Do's" : 'Perkara Yang Perlu'}</h2>
+  <ul>${listItems(aiDos, '✓', '#16a34a')}</ul>
+</div>
+
+<!-- Communication Don'ts -->
+<div class="section">
+  <h2 class="section-title">${language === 'en' ? "Communication Don'ts" : 'Perkara Yang Tidak Perlu'}</h2>
+  <ul>${listItems(aiDonts, '✗', '#dc2626')}</ul>
+</div>
+
+<div style="margin-top:40px;padding-top:20px;border-top:2px solid #e5e7eb;text-align:center;color:#6b7280;font-size:12px;">
+  <p><strong>${language === 'en' ? 'Keirsey Personality Assessment' : 'Penilaian Personaliti Keirsey'}</strong></p>
+  <p>© 2026</p>
+</div>
+</body></html>`);
+    win.document.close();
   };
 
   return (
@@ -343,7 +453,7 @@ export default function AdminPage() {
               className="flex items-center gap-2"
             >
               <FileSpreadsheet className="h-4 w-4" />
-              {language === 'en' ? 'Export CSV' : 'Eksport CSV'}
+              <span className="hidden sm:inline">{language === 'en' ? 'Export CSV' : 'Eksport CSV'}</span>
             </Button>
             {stats && (
               <AdminPDFExport
@@ -447,6 +557,17 @@ export default function AdminPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select value={filterOrganization} onValueChange={setFilterOrganization}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder={language === 'en' ? 'Filter by org' : 'Tapis mengikut organisasi'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{language === 'en' ? 'All Organisations' : 'Semua Organisasi'}</SelectItem>
+                      {organizations.map((org: string) => (
+                        <SelectItem key={org} value={org}>{org}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={filterDepartment} onValueChange={setFilterDepartment}>
                     <SelectTrigger className="w-full md:w-48">
                       <SelectValue placeholder={language === 'en' ? 'Filter by dept' : 'Tapis mengikut jabatan'} />
@@ -485,6 +606,7 @@ export default function AdminPage() {
                       <TableRow>
                         <TableHead>{language === 'en' ? 'Name' : 'Nama'}</TableHead>
                         <TableHead>{language === 'en' ? 'Email' : 'E-mel'}</TableHead>
+                        <TableHead>{language === 'en' ? 'Organisation' : 'Organisasi'}</TableHead>
                         <TableHead>{language === 'en' ? 'Department' : 'Jabatan'}</TableHead>
                         <TableHead>{language === 'en' ? 'Type' : 'Jenis'}</TableHead>
                         <TableHead>MBTI</TableHead>
@@ -497,6 +619,7 @@ export default function AdminPage() {
                         <TableRow key={participant.id}>
                           <TableCell className="font-medium">{participant.full_name}</TableCell>
                           <TableCell>{participant.email}</TableCell>
+                          <TableCell>{participant.organization || '-'}</TableCell>
                           <TableCell>{participant.department || '-'}</TableCell>
                           <TableCell>
                             <span 
@@ -513,7 +636,8 @@ export default function AdminPage() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => setSelectedParticipant(participant)}
+                                title={language === 'en' ? 'Open report in new tab' : 'Buka laporan dalam tab baru'}
+                                onClick={() => openIndividualReport(participant)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -653,6 +777,74 @@ export default function AdminPage() {
           {/* Settings Tab */}
           <TabsContent value="settings">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Reset Participant Email */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{language === 'en' ? 'Reset Participant Email' : 'Set Semula E-mel Peserta'}</CardTitle>
+                  <CardDescription>
+                    {language === 'en' 
+                      ? 'Allow a participant to retake the assessment by unlocking their email' 
+                      : 'Benarkan peserta mengambil semula penilaian dengan membuka kunci e-mel mereka'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">
+                        {language === 'en' ? 'Participant Email' : 'E-mel Peserta'}
+                      </label>
+                      <Input
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder={language === 'en' ? 'participant@email.com' : 'peserta@emel.com'}
+                        className="mt-2"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      disabled={!resetEmail.trim() || isResetting}
+                      onClick={async () => {
+                        if (!confirm(language === 'en' 
+                          ? `Reset assessment for ${resetEmail}? Their previous data will be deleted.`
+                          : `Set semula penilaian untuk ${resetEmail}? Data sebelumnya akan dipadam.`
+                        )) return;
+                        setIsResetting(true);
+                        try {
+                          const res = await fetch('/api/admin/reset-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: resetEmail })
+                          });
+                          if (res.ok) {
+                            toast.success(language === 'en' ? 'Email reset successfully' : 'E-mel berjaya diset semula');
+                            setResetEmail('');
+                            fetchData();
+                          } else {
+                            const data = await res.json();
+                            toast.error(data.error || (language === 'en' ? 'Failed to reset' : 'Gagal menetapkan semula'));
+                          }
+                        } catch {
+                          toast.error(language === 'en' ? 'An error occurred' : 'Ralat berlaku');
+                        } finally {
+                          setIsResetting(false);
+                        }
+                      }}
+                    >
+                      {isResetting 
+                        ? (language === 'en' ? 'Resetting...' : 'Menetapkan semula...')
+                        : (language === 'en' ? 'Reset & Unlock Email' : 'Set Semula & Buka Kunci E-mel')}
+                    </Button>
+                    <p className="text-xs text-gray-500">
+                      {language === 'en'
+                        ? 'This will delete the participant\'s previous assessment data and allow them to retake the test with the same email.'
+                        : 'Ini akan memadam data penilaian peserta sebelumnya dan membenarkan mereka mengambil semula ujian dengan e-mel yang sama.'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>{t('admin.uploadLogo', language)}</CardTitle>

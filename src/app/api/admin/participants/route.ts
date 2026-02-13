@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') || 'all'
     const department = searchParams.get('department') || 'all'
     const organization = searchParams.get('organization') || 'all'
+    const exportAll = searchParams.get('export') === 'true'
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -33,9 +34,14 @@ export async function GET(request: Request) {
       query = query.eq('organization', organization)
     }
 
+    query = query.order('created_at', { ascending: false })
+
+    // When export=true, return all matching records without pagination
+    if (!exportAll) {
+      query = query.range(offset, offset + limit - 1)
+    }
+
     const { data, error, count } = await query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
 
     if (error) {
       console.error('Error fetching participants:', error)

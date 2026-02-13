@@ -118,7 +118,7 @@ export default function AdminPage() {
 
       const [participantsRes, statsRes] = await Promise.all([
         fetch(`/api/admin/participants?${params}`),
-        fetch('/api/admin/stats')
+        fetch(`/api/admin/stats?${params}`)
       ]);
 
       if (participantsRes.ok) {
@@ -275,7 +275,32 @@ export default function AdminPage() {
   const organizations = stats?.organizations || [...new Set(participants.map(p => p.organization).filter(Boolean))] as string[];
   const recommendations = getTrainingRecommendations(distribution, language);
 
-  const exportToCSV = () => {
+  const getExportParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (filterType !== 'all') params.set('type', filterType);
+    if (filterDepartment !== 'all') params.set('department', filterDepartment);
+    if (filterOrganization !== 'all') params.set('organization', filterOrganization);
+    params.set('export', 'true');
+    return params;
+  }, [searchQuery, filterType, filterDepartment, filterOrganization]);
+
+  const fetchAllFilteredParticipants = useCallback(async (): Promise<ParticipantData[]> => {
+    try {
+      const params = getExportParams();
+      const res = await fetch(`/api/admin/participants?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.data || [];
+      }
+    } catch (error) {
+      console.error('Failed to fetch all participants for export:', error);
+    }
+    return participants;
+  }, [getExportParams, participants]);
+
+  const exportToCSV = async () => {
+    const allParticipants = await fetchAllFilteredParticipants();
     const headers = [
       language === 'en' ? 'Name' : 'Nama',
       language === 'en' ? 'Email' : 'E-mel',
@@ -291,7 +316,7 @@ export default function AdminPage() {
       language === 'en' ? 'Artisan Score' : 'Skor Artisan',
       language === 'en' ? 'Date' : 'Tarikh'
     ];
-    const rows = participants.map(p => [
+    const rows = allParticipants.map(p => [
       p.full_name,
       p.email,
       p.organization || '-',
@@ -467,6 +492,14 @@ export default function AdminPage() {
                 participants={participants}
                 language={language}
                 companyLogoUrl={companyLogoUrl}
+                recommendations={recommendations}
+                fetchAllParticipants={fetchAllFilteredParticipants}
+                activeFilters={{
+                  organization: filterOrganization !== 'all' ? filterOrganization : undefined,
+                  department: filterDepartment !== 'all' ? filterDepartment : undefined,
+                  type: filterType !== 'all' ? filterType : undefined,
+                  search: searchQuery || undefined,
+                }}
               />
             )}
             <Button

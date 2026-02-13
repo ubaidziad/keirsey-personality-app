@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Language, PersonalityType } from '@/lib/types';
 import { personalityTypeColors, personalityTypeData } from '@/lib/personality-data';
 
+interface ActiveFilters {
+  organization?: string;
+  department?: string;
+  type?: string;
+  search?: string;
+}
+
 interface AdminPDFExportProps {
   stats: {
     totalParticipants: number;
@@ -16,13 +23,26 @@ interface AdminPDFExportProps {
   participants: any[];
   language: Language;
   companyLogoUrl?: string;
+  recommendations?: string[];
+  fetchAllParticipants?: () => Promise<any[]>;
+  activeFilters?: ActiveFilters;
 }
 
-export function AdminPDFExport({ stats, participants, language, companyLogoUrl }: AdminPDFExportProps) {
+export function AdminPDFExport({ stats, participants, language, companyLogoUrl, recommendations, fetchAllParticipants, activeFilters }: AdminPDFExportProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     setIsExporting(true);
+
+    // Fetch ALL filtered participants for the export (not just current page)
+    let allParticipants = participants;
+    if (fetchAllParticipants) {
+      try {
+        allParticipants = await fetchAllParticipants();
+      } catch {
+        allParticipants = participants;
+      }
+    }
     
     // Open print window with custom content
     const printWindow = window.open('', '_blank');
@@ -41,6 +61,25 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
         name: personalityTypeData[type as PersonalityType].name[language],
         color: personalityTypeColors[type as PersonalityType],
       }));
+
+    // Build active filter labels for the report header
+    const hasActiveFilters = activeFilters && (activeFilters.organization || activeFilters.department || activeFilters.type || activeFilters.search);
+    const filterLabels: string[] = [];
+    if (activeFilters?.organization) {
+      filterLabels.push(`${language === 'en' ? 'Organisation' : 'Organisasi'}: ${activeFilters.organization}`);
+    }
+    if (activeFilters?.department) {
+      filterLabels.push(`${language === 'en' ? 'Department' : 'Jabatan'}: ${activeFilters.department}`);
+    }
+    if (activeFilters?.type) {
+      const typeName = personalityTypeData[activeFilters.type as PersonalityType]?.name[language] || activeFilters.type;
+      filterLabels.push(`${language === 'en' ? 'Type' : 'Jenis'}: ${typeName}`);
+    }
+    if (activeFilters?.search) {
+      filterLabels.push(`${language === 'en' ? 'Search' : 'Carian'}: "${activeFilters.search}"`);
+    }
+
+    const recs = recommendations || [];
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -87,6 +126,27 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
       margin: 5px 0 0 0;
       color: #6b7280;
       font-size: 14px;
+    }
+    .filter-banner {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin-bottom: 25px;
+      font-size: 13px;
+    }
+    .filter-banner strong {
+      color: #1e40af;
+    }
+    .filter-tag {
+      display: inline-block;
+      background: #2563eb;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px 4px;
     }
     .stats-grid {
       display: grid;
@@ -209,6 +269,34 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
       font-weight: 600;
       color: white;
     }
+    .rec-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+      border-radius: 10px;
+      border-left: 4px solid #7c3aed;
+    }
+    .rec-number {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .rec-text {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.6;
+    }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
@@ -240,6 +328,19 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
     </div>
     ` : ''}
   </div>
+
+  ${hasActiveFilters ? `
+  <!-- Active Filters Banner -->
+  <div class="filter-banner">
+    <strong>${language === 'en' ? 'Report Filters Applied:' : 'Penapis Laporan Digunakan:'}</strong>
+    ${filterLabels.map(label => `<span class="filter-tag">${label}</span>`).join(' ')}
+    <p style="margin: 6px 0 0 0; color: #6b7280; font-size: 12px;">
+      ${language === 'en'
+        ? 'This report contains only data matching the above filters.'
+        : 'Laporan ini mengandungi hanya data yang sepadan dengan penapis di atas.'}
+    </p>
+  </div>
+  ` : ''}
 
   <!-- 1. Introduction -->
   <div class="section">
@@ -305,30 +406,29 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
     <h2 class="section-title">${language === 'en' ? '4. Personality Type Distribution' : '4. Taburan Jenis Personaliti'}</h2>
     <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">
       ${language === 'en' 
-        ? 'Distribution of dominant personality types among all participants' 
-        : 'Taburan jenis personaliti dominan di kalangan semua peserta'}
+        ? (hasActiveFilters ? 'Distribution of dominant personality types among filtered participants' : 'Distribution of dominant personality types among all participants')
+        : (hasActiveFilters ? 'Taburan jenis personaliti dominan di kalangan peserta yang ditapis' : 'Taburan jenis personaliti dominan di kalangan semua peserta')}
     </p>
     ${sortedDistribution.map(({ type, name, percentage, color }) => {
-      const icons = {
+      const icons: Record<string, string> = {
         guardian: 'G',
         rational: 'R',
         idealist: 'I',
         artisan: 'A'
       };
-      return `
-      <div class="distribution-item">
-        <div class="distribution-label" style="color: ${color}">
-          <span class="type-icon" style="background-color: ${color}">${icons[type]}</span>
-          <span>${name}</span>
-        </div>
-        <div class="distribution-bar-container">
-          <div class="distribution-bar" style="width: ${percentage}%; background: linear-gradient(90deg, ${color} 0%, ${color}dd 100%)">
-            ${percentage > 12 ? `${percentage.toFixed(0)}%` : ''}
-          </div>
-        </div>
-        <div class="distribution-percentage" style="color: ${color}">${percentage.toFixed(0)}%</div>
-      </div>
-    `;
+      const barLabel = percentage > 12 ? percentage.toFixed(0) + '%' : '';
+      return '<div class="distribution-item">'
+        + '<div class="distribution-label" style="color: ' + color + '">'
+        + '<span class="type-icon" style="background-color: ' + color + '">' + icons[type] + '</span>'
+        + '<span>' + name + '</span>'
+        + '</div>'
+        + '<div class="distribution-bar-container">'
+        + '<div class="distribution-bar" style="width: ' + percentage + '%; background: linear-gradient(90deg, ' + color + ' 0%, ' + color + 'dd 100%)">'
+        + barLabel
+        + '</div>'
+        + '</div>'
+        + '<div class="distribution-percentage" style="color: ' + color + '">' + percentage.toFixed(0) + '%</div>'
+        + '</div>';
     }).join('')}
   </div>
 
@@ -357,10 +457,33 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
   </div>
   ` : ''}
 
-  ${participants && participants.length > 0 ? `
-  <!-- 6. Participant Details -->
+  ${recs.length > 0 ? `
+  <!-- 6. AI Training Recommendations -->
   <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? '6. Individual Participant Analysis' : '6. Analisis Peserta Individu'}</h2>
+    <h2 class="section-title">${language === 'en' ? '6. Recommended Training / Development Programmes' : '6. Program Latihan / Pembangunan Yang Disyorkan'}</h2>
+    <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 18px;">
+      ${language === 'en'
+        ? 'Based on the personality type distribution of this group, the following AI-generated training and development programmes are recommended. These suggestions are tailored to the dominant temperament composition to maximise team effectiveness and individual growth.'
+        : 'Berdasarkan taburan jenis personaliti kumpulan ini, program latihan dan pembangunan yang dijana AI berikut disyorkan. Cadangan ini disesuaikan dengan komposisi perangai dominan untuk memaksimumkan keberkesanan pasukan dan pertumbuhan individu.'}
+    </p>
+    ${recs.map((rec, index) => `
+      <div class="rec-item">
+        <div class="rec-number">${index + 1}</div>
+        <div class="rec-text">${rec}</div>
+      </div>
+    `).join('')}
+    <p style="color: #6b7280; font-size: 12px; font-style: italic; margin-top: 15px; padding: 10px 14px; background: #f9fafb; border-radius: 6px;">
+      ${language === 'en'
+        ? 'Note: These recommendations are AI-generated based on the group personality profile. HR and facilitators may adjust the wording and programme selection as needed.'
+        : 'Nota: Cadangan ini dijana AI berdasarkan profil personaliti kumpulan. HR dan fasilitator boleh menyesuaikan perkataan dan pemilihan program mengikut keperluan.'}
+    </p>
+  </div>
+  ` : ''}
+
+  ${allParticipants && allParticipants.length > 0 ? `
+  <!-- 7. Participant Details -->
+  <div class="section page-break">
+    <h2 class="section-title">${language === 'en' ? '7. Individual Participant Analysis' : '7. Analisis Peserta Individu'}</h2>
     <table class="participants-table">
       <thead>
         <tr>
@@ -373,7 +496,7 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
         </tr>
       </thead>
       <tbody>
-        ${participants.slice(0, 100).map(p => {
+        ${allParticipants.map((p: any) => {
           const typeColor = personalityTypeColors[p.dominant_type as PersonalityType];
           const typeName = personalityTypeData[p.dominant_type as PersonalityType].name[language];
           return `
@@ -393,19 +516,12 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl }
         }).join('')}
       </tbody>
     </table>
-    ${participants.length > 100 ? `
-    <p style="margin-top: 15px; color: #6b7280; font-style: italic;">
-      ${language === 'en' 
-        ? `Showing first 100 of ${participants.length} participants` 
-        : `Menunjukkan 100 pertama daripada ${participants.length} peserta`}
-    </p>
-    ` : ''}
   </div>
   ` : ''}
 
-  <!-- 7. Conclusion -->
+  <!-- 8. Conclusion -->
   <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? '7. Conclusion & Interpretation Notes' : '7. Kesimpulan & Nota Interpretasi'}</h2>
+    <h2 class="section-title">${language === 'en' ? '8. Conclusion & Interpretation Notes' : '8. Kesimpulan & Nota Interpretasi'}</h2>
     <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
       ${language === 'en'
         ? 'Based on the assessment results, the following observations and recommendations are provided for HR and management consideration:'

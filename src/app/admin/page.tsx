@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Users, BarChart3, Settings, Download, Search, Filter, 
   ChevronDown, Eye, Trash2, FileSpreadsheet, FileText,
-  PieChart, TrendingUp, Calendar, RefreshCw, Globe, Loader2, LogOut, Sparkles, Edit2, Check, X
+  PieChart, TrendingUp, Calendar, RefreshCw, Globe, Loader2, LogOut, Sparkles, FolderTree
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useAssessmentStore } from '@/lib/store';
 import { t } from '@/lib/translations';
 import { personalityTypeColors, personalityTypeData, getTrainingRecommendations } from '@/lib/personality-data';
@@ -74,6 +81,7 @@ interface StatsData {
   distribution: Record<PersonalityType, number>;
   departments: Array<{ department: string; participant_count: number; completed_assessments: number }>;
   organizations?: string[];
+  allDepartments?: string[];
 }
 
 export default function AdminPage() {
@@ -99,11 +107,13 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const pageSize = 20;
-  const [editingField, setEditingField] = useState<{ id: string; field: 'organization' | 'department' } | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [accessPassword, setAccessPassword] = useState('');
+  const [hasAccessPassword, setHasAccessPassword] = useState(false);
   const [newAccessPassword, setNewAccessPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isNormalizeModalOpen, setIsNormalizeModalOpen] = useState(false);
+  const [orgEdits, setOrgEdits] = useState<Record<string, string>>({});
+  const [deptEdits, setDeptEdits] = useState<Record<string, string>>({});
+  const [isNormalizing, setIsNormalizing] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -149,7 +159,7 @@ export default function AdminPage() {
       const passwordRes = await fetch('/api/admin/access-password');
       if (passwordRes.ok) {
         const passwordData = await passwordRes.json();
-        setAccessPassword(passwordData.password || '');
+        setHasAccessPassword(!!passwordData.hasPassword);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -245,43 +255,58 @@ export default function AdminPage() {
     }
   };
 
-  const handleStartEdit = (id: string, field: 'organization' | 'department', currentValue: string) => {
-    setEditingField({ id, field });
-    setEditValue(currentValue || '');
+  const openNormalizeModal = () => {
+    const nextOrgEdits: Record<string, string> = {};
+    const nextDeptEdits: Record<string, string> = {};
+
+    organizations.forEach(org => {
+      nextOrgEdits[org] = org;
+    });
+    departments.forEach(dept => {
+      nextDeptEdits[dept] = dept;
+    });
+
+    setOrgEdits(nextOrgEdits);
+    setDeptEdits(nextDeptEdits);
+    setIsNormalizeModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
-    setEditingField(null);
-    setEditValue('');
-  };
+  const handleNormalizeValue = async (
+    field: 'organization' | 'department',
+    fromValue: string,
+    toValue: string
+  ) => {
+    const targetValue = toValue.trim();
+    if (!targetValue || targetValue === fromValue) return;
 
-  const handleSaveEdit = async () => {
-    if (!editingField) return;
-
+    setIsNormalizing(true);
     try {
-      const response = await fetch(`/api/admin/participants/update?id=${editingField.id}`, {
+      const response = await fetch('/api/admin/metadata-normalize', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [editingField.field]: editValue.trim() }),
+        body: JSON.stringify({ field, fromValue, toValue: targetValue }),
       });
 
-      if (response.ok) {
-        toast.success(
-          language === 'en' ? 'Updated successfully' : 'Dikemas kini berjaya'
-        );
-        setEditingField(null);
-        setEditValue('');
-        fetchData();
-      } else {
-        toast.error(
-          language === 'en' ? 'Failed to update' : 'Gagal mengemas kini'
-        );
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to normalize values');
       }
-    } catch (error) {
-      console.error('Failed to update participant:', error);
-      toast.error(
-        language === 'en' ? 'An error occurred' : 'Ralat berlaku'
+
+      const data = await response.json();
+      toast.success(
+        language === 'en'
+          ? `${field === 'organization' ? 'Organization' : 'Department'} updated for ${data.updatedCount} participant(s)`
+          : `${field === 'organization' ? 'Organisasi' : 'Jabatan'} dikemas kini untuk ${data.updatedCount} peserta`
       );
+
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to normalize metadata:', error);
+      toast.error(
+        language === 'en' ? 'Failed to apply name change' : 'Gagal mengemas kini nama'
+      );
+    } finally {
+      setIsNormalizing(false);
     }
   };
 
@@ -295,7 +320,7 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        setAccessPassword(newAccessPassword.trim());
+        setHasAccessPassword(!!newAccessPassword.trim());
         setNewAccessPassword('');
         toast.success(
           language === 'en' 
@@ -355,7 +380,7 @@ export default function AdminPage() {
   };
 
   const distribution = stats?.distribution || { guardian: 0, rational: 0, idealist: 0, artisan: 0 };
-  const departments = stats?.departments?.map(d => d.department).filter(Boolean) || [];
+  const departments = stats?.allDepartments || [];
   const organizations = stats?.organizations || [...new Set(participants.map(p => p.organization).filter(Boolean))] as string[];
   const recommendations = getTrainingRecommendations(distribution, language);
 
@@ -742,70 +767,8 @@ export default function AdminPage() {
                         <TableRow key={participant.id}>
                           <TableCell className="font-medium">{participant.full_name}</TableCell>
                           <TableCell>{participant.email}</TableCell>
-                          <TableCell>
-                            {editingField?.id === participant.id && editingField.field === 'organization' ? (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  className="h-8 text-sm"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSaveEdit();
-                                    if (e.key === 'Escape') handleCancelEdit();
-                                  }}
-                                />
-                                <Button size="sm" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8 p-0">
-                                  <Check className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8 w-8 p-0">
-                                  <X className="h-4 w-4 text-red-600" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 group">
-                                <span>{participant.organization || '-'}</span>
-                                <button
-                                  onClick={() => handleStartEdit(participant.id, 'organization', participant.organization || '')}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Edit2 className="h-3 w-3 text-gray-400 hover:text-blue-600" />
-                                </button>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {editingField?.id === participant.id && editingField.field === 'department' ? (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  className="h-8 text-sm"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSaveEdit();
-                                    if (e.key === 'Escape') handleCancelEdit();
-                                  }}
-                                />
-                                <Button size="sm" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8 p-0">
-                                  <Check className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8 w-8 p-0">
-                                  <X className="h-4 w-4 text-red-600" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 group">
-                                <span>{participant.department || '-'}</span>
-                                <button
-                                  onClick={() => handleStartEdit(participant.id, 'department', participant.department || '')}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Edit2 className="h-3 w-3 text-gray-400 hover:text-blue-600" />
-                                </button>
-                              </div>
-                            )}
-                          </TableCell>
+                          <TableCell>{participant.organization || '-'}</TableCell>
+                          <TableCell>{participant.department || '-'}</TableCell>
                           <TableCell>
                             <span 
                               className="px-2 py-1 rounded-full text-xs font-medium text-white"
@@ -1074,18 +1037,18 @@ export default function AdminPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {accessPassword && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-blue-900">
-                              {language === 'en' ? 'Current Password' : 'Kata Laluan Semasa'}
-                            </p>
-                            <p className="text-lg font-mono font-bold text-blue-700 mt-1">{accessPassword}</p>
-                          </div>
-                        </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-blue-900">
+                          {language === 'en' ? 'Protection Status' : 'Status Perlindungan'}
+                        </p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${hasAccessPassword ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                          {hasAccessPassword
+                            ? (language === 'en' ? 'Enabled' : 'Diaktifkan')
+                            : (language === 'en' ? 'Disabled' : 'Tidak Aktif')}
+                        </span>
                       </div>
-                    )}
+                    </div>
                     <div>
                       <label className="text-sm font-medium">
                         {language === 'en' ? 'New Password' : 'Kata Laluan Baru'}
@@ -1113,6 +1076,25 @@ export default function AdminPage() {
                         : 'Petua: Gunakan kata laluan yang mudah dan mudah diingati yang boleh anda kongsikan dengan peserta. Kosongkan medan dan klik kemas kini untuk membuang perlindungan kata laluan.'}
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderTree className="h-5 w-5" />
+                    {language === 'en' ? 'Normalize Organization / Department Names' : 'Selaraskan Nama Organisasi / Jabatan'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'en'
+                      ? 'Consolidate inconsistent names (e.g. MPP vs Majlis Perbandaran Pengerang) from a single settings popup.'
+                      : 'Satukan nama yang tidak konsisten (contoh: MPP vs Majlis Perbandaran Pengerang) melalui popup tetapan.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="outline" className="w-full" onClick={openNormalizeModal}>
+                    {language === 'en' ? 'Open Name Management Popup' : 'Buka Popup Pengurusan Nama'}
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -1195,6 +1177,73 @@ export default function AdminPage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={isNormalizeModalOpen} onOpenChange={setIsNormalizeModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {language === 'en' ? 'Organization & Department Name Manager' : 'Pengurus Nama Organisasi & Jabatan'}
+              </DialogTitle>
+              <DialogDescription>
+                {language === 'en'
+                  ? 'Edit and consolidate name variations. Changes are applied to all participants with the selected value.'
+                  : 'Edit dan satukan variasi nama. Perubahan akan digunakan kepada semua peserta dengan nilai yang dipilih.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                  {language === 'en' ? 'Organizations' : 'Organisasi'}
+                </h3>
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  {organizations.length === 0 ? (
+                    <p className="text-sm text-gray-500">{language === 'en' ? 'No organization data' : 'Tiada data organisasi'}</p>
+                  ) : organizations.map((org) => (
+                    <div key={org} className="flex items-center gap-2">
+                      <Input
+                        value={orgEdits[org] ?? org}
+                        onChange={(e) => setOrgEdits(prev => ({ ...prev, [org]: e.target.value }))}
+                      />
+                      <Button
+                        size="sm"
+                        disabled={isNormalizing || (orgEdits[org] ?? org).trim() === org}
+                        onClick={() => handleNormalizeValue('organization', org, orgEdits[org] ?? org)}
+                      >
+                        {language === 'en' ? 'Apply' : 'Guna'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+                  {language === 'en' ? 'Departments' : 'Jabatan'}
+                </h3>
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  {departments.length === 0 ? (
+                    <p className="text-sm text-gray-500">{language === 'en' ? 'No department data' : 'Tiada data jabatan'}</p>
+                  ) : departments.map((dept) => (
+                    <div key={dept} className="flex items-center gap-2">
+                      <Input
+                        value={deptEdits[dept] ?? dept}
+                        onChange={(e) => setDeptEdits(prev => ({ ...prev, [dept]: e.target.value }))}
+                      />
+                      <Button
+                        size="sm"
+                        disabled={isNormalizing || (deptEdits[dept] ?? dept).trim() === dept}
+                        onClick={() => handleNormalizeValue('department', dept, deptEdits[dept] ?? dept)}
+                      >
+                        {language === 'en' ? 'Apply' : 'Guna'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Modals */}
         {selectedParticipant && (

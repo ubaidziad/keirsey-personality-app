@@ -21,6 +21,14 @@ export async function GET(request: Request) {
       .not('organization', 'eq', '')
     const uniqueOrgs = [...new Set((orgData || []).map((o: { organization: string }) => o.organization).filter(Boolean))] as string[]
 
+    // Always fetch unique departments (unfiltered) for the filter dropdown
+    const { data: deptData } = await supabase
+      .from('participants')
+      .select('department')
+      .not('department', 'is', null)
+      .not('department', 'eq', '')
+    const uniqueDepartments = [...new Set((deptData || []).map((d: { department: string }) => d.department).filter(Boolean))] as string[]
+
     if (hasFilters) {
       // Compute stats dynamically from filtered recent_assessments data
       let query = supabase.from('recent_assessments').select('*')
@@ -82,7 +90,8 @@ export async function GET(request: Request) {
         completedAssessments: total,
         distribution: distributionRecord,
         departments,
-        organizations: uniqueOrgs.sort()
+        organizations: uniqueOrgs.sort(),
+        allDepartments: uniqueDepartments.sort()
       })
     }
 
@@ -121,7 +130,8 @@ export async function GET(request: Request) {
       completedAssessments: completedAssessments || 0,
       distribution: distributionRecord,
       departments: departments || [],
-      organizations: uniqueOrgs.sort()
+      organizations: uniqueOrgs.sort(),
+      allDepartments: uniqueDepartments.sort()
     })
   } catch (error) {
     console.error('Error in stats API:', error)

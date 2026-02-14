@@ -22,10 +22,14 @@ export function PasswordGate({ onSuccess, language }: PasswordGateProps) {
     setIsVerifying(true);
 
     try {
-      const response = await fetch('/api/admin/access-password');
+      const response = await fetch('/api/admin/access-password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password.trim() }),
+      });
       const data = await response.json();
 
-      if (data.password && data.password === password.trim()) {
+      if (response.ok && data.valid) {
         sessionStorage.setItem('assessment_access_verified', 'true');
         onSuccess();
       } else {

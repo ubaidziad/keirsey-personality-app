@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Brain, Globe, ArrowRight, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAssessmentStore } from '@/lib/store';
 import { t } from '@/lib/translations';
 import { Language } from '@/lib/types';
+import { PasswordGate } from '@/components/PasswordGate';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { language, setLanguage, setParticipant } = useAssessmentStore();
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -28,6 +31,32 @@ export default function RegisterPage() {
   const [emailExists, setEmailExists] = useState(false);
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const checkPasswordProtection = async () => {
+      const verified = sessionStorage.getItem('assessment_access_verified') === 'true';
+      if (verified) {
+        setIsPasswordVerified(true);
+        setHasPassword(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/access-password');
+        const data = await response.json();
+        setHasPassword(data.hasPassword);
+        if (!data.hasPassword) {
+          setIsPasswordVerified(true);
+        }
+      } catch (error) {
+        console.error('Error checking password protection:', error);
+        setHasPassword(false);
+        setIsPasswordVerified(true);
+      }
+    };
+
+    checkPasswordProtection();
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -96,6 +125,25 @@ export default function RegisterPage() {
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'ms' : 'en');
   };
+
+  // Show loading state while checking password protection
+  if (hasPassword === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">
+            {language === 'en' ? 'Loading...' : 'Memuatkan...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show password gate if password protection is enabled and not verified
+  if (hasPassword && !isPasswordVerified) {
+    return <PasswordGate onSuccess={() => setIsPasswordVerified(true)} language={language} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

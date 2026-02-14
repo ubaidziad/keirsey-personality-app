@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Edit2, X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Language, PersonalityType } from '@/lib/types';
 import { personalityTypeColors, personalityTypeData } from '@/lib/personality-data';
@@ -30,9 +30,31 @@ interface AdminPDFExportProps {
 
 export function AdminPDFExport({ stats, participants, language, companyLogoUrl, recommendations, fetchAllParticipants, activeFilters }: AdminPDFExportProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [editableRecs, setEditableRecs] = useState<string[]>([]);
 
-  const generatePDF = async () => {
+  const handleOpenPreview = () => {
+    setEditableRecs(recommendations || []);
+    setShowPreview(true);
+  };
+
+  const handleAddRecommendation = () => {
+    setEditableRecs([...editableRecs, '']);
+  };
+
+  const handleUpdateRecommendation = (index: number, value: string) => {
+    const updated = [...editableRecs];
+    updated[index] = value;
+    setEditableRecs(updated);
+  };
+
+  const handleDeleteRecommendation = (index: number) => {
+    setEditableRecs(editableRecs.filter((_, i) => i !== index));
+  };
+
+  const generatePDF = async (customRecs?: string[]) => {
     setIsExporting(true);
+    if (showPreview) setShowPreview(false);
 
     // Fetch ALL filtered participants for the export (not just current page)
     let allParticipants = participants;
@@ -79,7 +101,7 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
       filterLabels.push(`${language === 'en' ? 'Search' : 'Carian'}: "${activeFilters.search}"`);
     }
 
-    const recs = recommendations || [];
+    const recs = customRecs || recommendations || [];
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -457,33 +479,10 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
   </div>
   ` : ''}
 
-  ${recs.length > 0 ? `
-  <!-- 6. AI Training Recommendations -->
-  <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? '6. Recommended Training / Development Programmes' : '6. Program Latihan / Pembangunan Yang Disyorkan'}</h2>
-    <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 18px;">
-      ${language === 'en'
-        ? 'Based on the personality type distribution of this group, the following AI-generated training and development programmes are recommended. These suggestions are tailored to the dominant temperament composition to maximise team effectiveness and individual growth.'
-        : 'Berdasarkan taburan jenis personaliti kumpulan ini, program latihan dan pembangunan yang dijana AI berikut disyorkan. Cadangan ini disesuaikan dengan komposisi perangai dominan untuk memaksimumkan keberkesanan pasukan dan pertumbuhan individu.'}
-    </p>
-    ${recs.map((rec, index) => `
-      <div class="rec-item">
-        <div class="rec-number">${index + 1}</div>
-        <div class="rec-text">${rec}</div>
-      </div>
-    `).join('')}
-    <p style="color: #6b7280; font-size: 12px; font-style: italic; margin-top: 15px; padding: 10px 14px; background: #f9fafb; border-radius: 6px;">
-      ${language === 'en'
-        ? 'Note: These recommendations are AI-generated based on the group personality profile. HR and facilitators may adjust the wording and programme selection as needed.'
-        : 'Nota: Cadangan ini dijana AI berdasarkan profil personaliti kumpulan. HR dan fasilitator boleh menyesuaikan perkataan dan pemilihan program mengikut keperluan.'}
-    </p>
-  </div>
-  ` : ''}
-
   ${allParticipants && allParticipants.length > 0 ? `
-  <!-- 7. Participant Details -->
+  <!-- 6. Participant Details -->
   <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? '7. Individual Participant Analysis' : '7. Analisis Peserta Individu'}</h2>
+    <h2 class="section-title">${language === 'en' ? '6. Individual Participant Analysis' : '6. Analisis Peserta Individu'}</h2>
     <table class="participants-table">
       <thead>
         <tr>
@@ -519,9 +518,9 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
   </div>
   ` : ''}
 
-  <!-- 8. Conclusion -->
+  <!-- 7. Conclusion -->
   <div class="section page-break">
-    <h2 class="section-title">${language === 'en' ? '8. Conclusion & Interpretation Notes' : '8. Kesimpulan & Nota Interpretasi'}</h2>
+    <h2 class="section-title">${language === 'en' ? '7. Conclusion & Recommendations' : '7. Kesimpulan & Cadangan'}</h2>
     <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
       ${language === 'en'
         ? 'Based on the assessment results, the following observations and recommendations are provided for HR and management consideration:'
@@ -541,7 +540,25 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
         ? 'Individual results should be used as a development tool, not as a basis for performance evaluation.'
         : 'Keputusan individu harus digunakan sebagai alat pembangunan, bukan sebagai asas untuk penilaian prestasi.'}</li>
     </ul>
-    <p style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+
+    ${recs.length > 0 ? `
+    <h3 style="font-size: 18px; font-weight: 700; color: #1f2937; margin-top: 30px; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      ${language === 'en' ? 'Recommended Training / Development Programmes' : 'Program Latihan / Pembangunan Yang Disyorkan'}
+    </h3>
+    <p style="color: #374151; font-size: 14px; line-height: 1.8; margin-bottom: 18px;">
+      ${language === 'en'
+        ? 'Based on the personality type distribution of this group, the following AI-generated training and development programmes are recommended:'
+        : 'Berdasarkan taburan jenis personaliti kumpulan ini, program latihan dan pembangunan yang dijana AI berikut disyorkan:'}
+    </p>
+    ${recs.map((rec, index) => '<div class="rec-item"><div class="rec-number">' + (index + 1) + '</div><div class="rec-text">' + rec + '</div></div>').join('')}
+    <p style="color: #6b7280; font-size: 12px; font-style: italic; margin-top: 15px; padding: 10px 14px; background: #f9fafb; border-radius: 6px;">
+      ${language === 'en'
+        ? 'Note: These recommendations are AI-generated based on the group personality profile. HR and facilitators may adjust as needed.'
+        : 'Nota: Cadangan ini dijana AI berdasarkan profil personaliti kumpulan. HR dan fasilitator boleh menyesuaikan mengikut keperluan.'}
+    </p>
+    ` : ''}
+
+    <p style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 25px; padding: 15px; background: #f9fafb; border-radius: 8px;">
       ${language === 'en'
         ? 'Disclaimer: This assessment is based on the Keirsey Temperament Sorter framework. Results should be interpreted as general tendencies rather than absolute classifications. Individual behaviour may vary depending on context and circumstances.'
         : 'Penafian: Penilaian ini berdasarkan rangka kerja Pengisih Perangai Keirsey. Keputusan harus ditafsirkan sebagai kecenderungan umum dan bukan klasifikasi mutlak. Tingkah laku individu mungkin berbeza bergantung pada konteks dan keadaan.'}
@@ -569,17 +586,145 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={generatePDF}
-      disabled={isExporting}
-      className="flex items-center gap-2 h-9 px-3"
-    >
-      <Download className="h-4 w-4" />
-      {isExporting 
-        ? (language === 'en' ? 'Generating...' : 'Menjana...') 
-        : (language === 'en' ? 'Export PDF' : 'Eksport PDF')}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleOpenPreview}
+        disabled={isExporting}
+        className="flex items-center gap-2 h-9 px-3"
+      >
+        <Edit2 className="h-4 w-4" />
+        {language === 'en' ? 'Preview & Edit PDF' : 'Pratonton & Edit PDF'}
+      </Button>
+
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">
+                {language === 'en' ? 'Preview & Edit Report' : 'Pratonton & Edit Laporan'}
+              </h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Filter Context */}
+              {activeFilters && (activeFilters.organization || activeFilters.department || activeFilters.type || activeFilters.search) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">
+                    {language === 'en' ? 'Active Filters' : 'Penapis Aktif'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {activeFilters.organization && (
+                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                        {language === 'en' ? 'Org' : 'Org'}: {activeFilters.organization}
+                      </span>
+                    )}
+                    {activeFilters.department && (
+                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                        {language === 'en' ? 'Dept' : 'Jabatan'}: {activeFilters.department}
+                      </span>
+                    )}
+                    {activeFilters.type && (
+                      <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                        {language === 'en' ? 'Type' : 'Jenis'}: {personalityTypeData[activeFilters.type as PersonalityType]?.name[language]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics Preview */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900">
+                  {language === 'en' ? 'Report Statistics' : 'Statistik Laporan'}
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-600">{language === 'en' ? 'Participants' : 'Peserta'}</p>
+                    <p className="text-2xl font-bold text-blue-900">{stats.totalParticipants}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-600">{language === 'en' ? 'Completed' : 'Selesai'}</p>
+                    <p className="text-2xl font-bold text-blue-900">{stats.completedAssessments}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Recommendations */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">
+                    {language === 'en' ? 'AI Training Recommendations' : 'Cadangan Latihan AI'}
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddRecommendation}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {language === 'en' ? 'Add' : 'Tambah'}
+                  </Button>
+                </div>
+                
+                {editableRecs.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">
+                    {language === 'en' ? 'No recommendations yet. Click "Add" to create one.' : 'Tiada cadangan lagi. Klik "Tambah" untuk membuat satu.'}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {editableRecs.map((rec, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white flex items-center justify-center text-sm font-bold mt-1">
+                          {index + 1}
+                        </span>
+                        <textarea
+                          value={rec}
+                          onChange={(e) => handleUpdateRecommendation(index, e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg p-3 min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder={language === 'en' ? 'Enter recommendation...' : 'Masukkan cadangan...'}
+                        />
+                        <button
+                          onClick={() => handleDeleteRecommendation(index)}
+                          className="flex-shrink-0 text-red-500 hover:text-red-700 mt-1"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreview(false)}
+              >
+                {language === 'en' ? 'Cancel' : 'Batal'}
+              </Button>
+              <Button
+                onClick={() => generatePDF(editableRecs.filter(r => r.trim()))}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {isExporting 
+                  ? (language === 'en' ? 'Generating...' : 'Menjana...') 
+                  : (language === 'en' ? 'Generate PDF' : 'Jana PDF')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

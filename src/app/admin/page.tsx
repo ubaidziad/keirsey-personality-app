@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Users, BarChart3, Settings, Download, Search, Filter, 
   ChevronDown, Eye, Trash2, FileSpreadsheet, FileText,
-  PieChart, TrendingUp, Calendar, RefreshCw, Globe, Loader2, LogOut, Sparkles
+  PieChart, TrendingUp, Calendar, RefreshCw, Globe, Loader2, LogOut, Sparkles, Edit2, Check, X
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,11 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const pageSize = 20;
+  const [editingField, setEditingField] = useState<{ id: string; field: 'organization' | 'department' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [newAccessPassword, setNewAccessPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -138,6 +143,13 @@ export default function AdminPage() {
         const settingsData = await settingsRes.json();
         setCompanyLogoUrl(settingsData.logo_url || '');
         setRetentionPeriod(settingsData.data_retention_months?.toString() || '12');
+      }
+
+      // Fetch access password
+      const passwordRes = await fetch('/api/admin/access-password');
+      if (passwordRes.ok) {
+        const passwordData = await passwordRes.json();
+        setAccessPassword(passwordData.password || '');
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -230,6 +242,78 @@ export default function AdminPage() {
           ? 'An error occurred'
           : 'Ralat berlaku'
       );
+    }
+  };
+
+  const handleStartEdit = (id: string, field: 'organization' | 'department', currentValue: string) => {
+    setEditingField({ id, field });
+    setEditValue(currentValue || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingField) return;
+
+    try {
+      const response = await fetch(`/api/admin/participants/update?id=${editingField.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [editingField.field]: editValue.trim() }),
+      });
+
+      if (response.ok) {
+        toast.success(
+          language === 'en' ? 'Updated successfully' : 'Dikemas kini berjaya'
+        );
+        setEditingField(null);
+        setEditValue('');
+        fetchData();
+      } else {
+        toast.error(
+          language === 'en' ? 'Failed to update' : 'Gagal mengemas kini'
+        );
+      }
+    } catch (error) {
+      console.error('Failed to update participant:', error);
+      toast.error(
+        language === 'en' ? 'An error occurred' : 'Ralat berlaku'
+      );
+    }
+  };
+
+  const handleUpdateAccessPassword = async () => {
+    setIsUpdatingPassword(true);
+    try {
+      const response = await fetch('/api/admin/access-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newAccessPassword.trim() || null }),
+      });
+
+      if (response.ok) {
+        setAccessPassword(newAccessPassword.trim());
+        setNewAccessPassword('');
+        toast.success(
+          language === 'en' 
+            ? newAccessPassword.trim() ? 'Password updated successfully' : 'Password removed successfully'
+            : newAccessPassword.trim() ? 'Kata laluan dikemas kini berjaya' : 'Kata laluan dipadam berjaya'
+        );
+      } else {
+        toast.error(
+          language === 'en' ? 'Failed to update password' : 'Gagal mengemas kini kata laluan'
+        );
+      }
+    } catch (error) {
+      console.error('Failed to update access password:', error);
+      toast.error(
+        language === 'en' ? 'An error occurred' : 'Ralat berlaku'
+      );
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -658,8 +742,70 @@ export default function AdminPage() {
                         <TableRow key={participant.id}>
                           <TableCell className="font-medium">{participant.full_name}</TableCell>
                           <TableCell>{participant.email}</TableCell>
-                          <TableCell>{participant.organization || '-'}</TableCell>
-                          <TableCell>{participant.department || '-'}</TableCell>
+                          <TableCell>
+                            {editingField?.id === participant.id && editingField.field === 'organization' ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  className="h-8 text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEdit();
+                                    if (e.key === 'Escape') handleCancelEdit();
+                                  }}
+                                />
+                                <Button size="sm" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8 p-0">
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8 w-8 p-0">
+                                  <X className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <span>{participant.organization || '-'}</span>
+                                <button
+                                  onClick={() => handleStartEdit(participant.id, 'organization', participant.organization || '')}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Edit2 className="h-3 w-3 text-gray-400 hover:text-blue-600" />
+                                </button>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingField?.id === participant.id && editingField.field === 'department' ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  className="h-8 text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEdit();
+                                    if (e.key === 'Escape') handleCancelEdit();
+                                  }}
+                                />
+                                <Button size="sm" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8 p-0">
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8 w-8 p-0">
+                                  <X className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <span>{participant.department || '-'}</span>
+                                <button
+                                  onClick={() => handleStartEdit(participant.id, 'department', participant.department || '')}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Edit2 className="h-3 w-3 text-gray-400 hover:text-blue-600" />
+                                </button>
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <span 
                               className="px-2 py-1 rounded-full text-xs font-medium text-white"
@@ -910,6 +1056,61 @@ export default function AdminPage() {
                       {language === 'en'
                         ? 'This will delete the participant\'s previous assessment data and allow them to retake the test with the same email.'
                         : 'Ini akan memadam data penilaian peserta sebelumnya dan membenarkan mereka mengambil semula ujian dengan e-mel yang sama.'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {language === 'en' ? 'Access Password Protection' : 'Perlindungan Kata Laluan Akses'}
+                  </CardTitle>
+                  <CardDescription>
+                    {language === 'en'
+                      ? 'Set a password to protect the questionnaire from unauthorized access. Participants will need to enter this password before taking the assessment.'
+                      : 'Tetapkan kata laluan untuk melindungi soal selidik daripada akses tanpa kebenaran. Peserta perlu memasukkan kata laluan ini sebelum mengambil penilaian.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {accessPassword && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-900">
+                              {language === 'en' ? 'Current Password' : 'Kata Laluan Semasa'}
+                            </p>
+                            <p className="text-lg font-mono font-bold text-blue-700 mt-1">{accessPassword}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium">
+                        {language === 'en' ? 'New Password' : 'Kata Laluan Baru'}
+                      </label>
+                      <Input
+                        type="text"
+                        value={newAccessPassword}
+                        onChange={(e) => setNewAccessPassword(e.target.value)}
+                        placeholder={language === 'en' ? 'Enter new password (leave empty to remove)' : 'Masukkan kata laluan baru (kosongkan untuk padam)'}
+                        className="mt-2"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleUpdateAccessPassword}
+                      disabled={isUpdatingPassword}
+                    >
+                      {isUpdatingPassword 
+                        ? (language === 'en' ? 'Updating...' : 'Mengemas kini...')
+                        : (language === 'en' ? 'Update Password' : 'Kemas Kini Kata Laluan')}
+                    </Button>
+                    <p className="text-xs text-gray-500">
+                      {language === 'en'
+                        ? 'Tip: Use a simple, memorable password that you can easily share with participants. Leave the field empty and click update to remove password protection.'
+                        : 'Petua: Gunakan kata laluan yang mudah dan mudah diingati yang boleh anda kongsikan dengan peserta. Kosongkan medan dan klik kemas kini untuk membuang perlindungan kata laluan.'}
                     </p>
                   </div>
                 </CardContent>

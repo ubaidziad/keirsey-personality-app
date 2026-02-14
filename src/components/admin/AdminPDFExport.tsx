@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, FilePenLine } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Language, PersonalityType } from '@/lib/types';
 import { personalityTypeColors, personalityTypeData } from '@/lib/personality-data';
@@ -31,7 +31,7 @@ interface AdminPDFExportProps {
 export function AdminPDFExport({ stats, participants, language, companyLogoUrl, recommendations, fetchAllParticipants, activeFilters }: AdminPDFExportProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const generatePDF = async (mode: 'print' | 'editor' = 'print') => {
+  const generatePDF = async () => {
     setIsExporting(true);
 
     // Fetch ALL filtered participants for the export (not just current page)
@@ -543,32 +543,12 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
 </html>
     `;
 
-    if (mode === 'editor') {
-      sessionStorage.setItem('admin_report_html_draft', htmlContent);
-      const editorWindow = window.open('/admin/report-editor', '_blank');
-      if (!editorWindow) {
-        alert(language === 'en' ? 'Please allow popups to open report editor' : 'Sila benarkan popup untuk membuka editor laporan');
-      }
-      setIsExporting(false);
-      return;
+    sessionStorage.setItem('admin_report_html_draft', htmlContent);
+    const editorWindow = window.open('/admin/report-editor', '_blank');
+    if (!editorWindow) {
+      alert(language === 'en' ? 'Please allow popups to open report editor' : 'Sila benarkan popup untuk membuka editor laporan');
     }
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      setIsExporting(false);
-      alert(language === 'en' ? 'Please allow popups to export PDF' : 'Sila benarkan popup untuk eksport PDF');
-      return;
-    }
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Wait for images to load before printing
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      setIsExporting(false);
-    }, 500);
+    setIsExporting(false);
   };
 
   return (
@@ -576,25 +556,14 @@ export function AdminPDFExport({ stats, participants, language, companyLogoUrl, 
       <Button
         variant="outline"
         size="sm"
-        onClick={() => generatePDF('editor')}
-        disabled={isExporting}
-        className="flex items-center gap-2 h-9 px-3"
-      >
-        <FilePenLine className="h-4 w-4" />
-        {language === 'en' ? 'Edit Report Page' : 'Edit Halaman Laporan'}
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => generatePDF('print')}
+        onClick={generatePDF}
         disabled={isExporting}
         className="flex items-center gap-2 h-9 px-3"
       >
         <Download className="h-4 w-4" />
         {isExporting
-          ? (language === 'en' ? 'Generating...' : 'Menjana...')
-          : (language === 'en' ? 'Quick Export PDF' : 'Eksport PDF Pantas')}
+          ? (language === 'en' ? 'Preparing editor...' : 'Menyediakan editor...')
+          : (language === 'en' ? 'Export PDF' : 'Eksport PDF')}
       </Button>
     </div>
   );

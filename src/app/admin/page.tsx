@@ -111,8 +111,11 @@ export default function AdminPage() {
   const [newAccessPassword, setNewAccessPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isNormalizeModalOpen, setIsNormalizeModalOpen] = useState(false);
-  const [orgEdits, setOrgEdits] = useState<Record<string, string>>({});
-  const [deptEdits, setDeptEdits] = useState<Record<string, string>>({});
+  const [normalizeTab, setNormalizeTab] = useState<'organization' | 'department'>('organization');
+  const [sourceOrganization, setSourceOrganization] = useState('');
+  const [targetOrganization, setTargetOrganization] = useState('');
+  const [sourceDepartment, setSourceDepartment] = useState('');
+  const [targetDepartment, setTargetDepartment] = useState('');
   const [isNormalizing, setIsNormalizing] = useState(false);
 
   const handleLogout = async () => {
@@ -255,36 +258,41 @@ export default function AdminPage() {
     }
   };
 
+  const pickDefaultTarget = (values: string[], sourceValue: string) => {
+    if (!sourceValue) return '';
+    return values.find((value) => value !== sourceValue) || '';
+  };
+
   const openNormalizeModal = () => {
-    const nextOrgEdits: Record<string, string> = {};
-    const nextDeptEdits: Record<string, string> = {};
+    const defaultSourceOrg = organizations[0] || '';
+    const defaultTargetOrg = pickDefaultTarget(organizations, defaultSourceOrg);
+    const defaultSourceDept = departments[0] || '';
+    const defaultTargetDept = pickDefaultTarget(departments, defaultSourceDept);
 
-    organizations.forEach(org => {
-      nextOrgEdits[org] = org;
-    });
-    departments.forEach(dept => {
-      nextDeptEdits[dept] = dept;
-    });
-
-    setOrgEdits(nextOrgEdits);
-    setDeptEdits(nextDeptEdits);
+    setNormalizeTab('organization');
+    setSourceOrganization(defaultSourceOrg);
+    setTargetOrganization(defaultTargetOrg);
+    setSourceDepartment(defaultSourceDept);
+    setTargetDepartment(defaultTargetDept);
     setIsNormalizeModalOpen(true);
   };
 
-  const handleNormalizeValue = async (
+  const handleCombineMetadata = async (
     field: 'organization' | 'department',
     fromValue: string,
     toValue: string
   ) => {
+    const sourceValue = fromValue;
+    const sourceValueTrimmed = fromValue.trim();
     const targetValue = toValue.trim();
-    if (!targetValue || targetValue === fromValue) return;
+    if (!sourceValueTrimmed || !targetValue || targetValue === sourceValueTrimmed) return;
 
     setIsNormalizing(true);
     try {
       const response = await fetch('/api/admin/metadata-normalize', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ field, fromValue, toValue: targetValue }),
+        body: JSON.stringify({ field, fromValue: sourceValue, toValue: targetValue }),
       });
 
       if (!response.ok) {
@@ -295,18 +303,47 @@ export default function AdminPage() {
       const data = await response.json();
       toast.success(
         language === 'en'
-          ? `${field === 'organization' ? 'Organization' : 'Department'} updated for ${data.updatedCount} participant(s)`
-          : `${field === 'organization' ? 'Organisasi' : 'Jabatan'} dikemas kini untuk ${data.updatedCount} peserta`
+          ? `${field === 'organization' ? 'Organization' : 'Department'} merged for ${data.updatedCount} participant(s)`
+          : `${field === 'organization' ? 'Organisasi' : 'Jabatan'} digabungkan untuk ${data.updatedCount} peserta`
       );
+
+      if (field === 'organization' && filterOrganization === sourceValue) {
+        setFilterOrganization('all');
+      }
+      if (field === 'department' && filterDepartment === sourceValue) {
+        setFilterDepartment('all');
+      }
+
+      if (field === 'organization') {
+        setSourceOrganization('');
+        setTargetOrganization('');
+      } else {
+        setSourceDepartment('');
+        setTargetDepartment('');
+      }
 
       await fetchData();
     } catch (error) {
       console.error('Failed to normalize metadata:', error);
       toast.error(
-        language === 'en' ? 'Failed to apply name change' : 'Gagal mengemas kini nama'
+        language === 'en' ? 'Failed to combine values' : 'Gagal menggabungkan nilai'
       );
     } finally {
       setIsNormalizing(false);
+    }
+  };
+
+  const handleSourceOrganizationChange = (value: string) => {
+    setSourceOrganization(value);
+    if (!targetOrganization || targetOrganization === value) {
+      setTargetOrganization(pickDefaultTarget(organizations, value));
+    }
+  };
+
+  const handleSourceDepartmentChange = (value: string) => {
+    setSourceDepartment(value);
+    if (!targetDepartment || targetDepartment === value) {
+      setTargetDepartment(pickDefaultTarget(departments, value));
     }
   };
 
@@ -1182,65 +1219,164 @@ export default function AdminPage() {
           <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {language === 'en' ? 'Organization & Department Name Manager' : 'Pengurus Nama Organisasi & Jabatan'}
+                {language === 'en' ? 'Organization / Department Combine Manager' : 'Pengurus Gabungan Organisasi / Jabatan'}
               </DialogTitle>
               <DialogDescription>
                 {language === 'en'
-                  ? 'Edit and consolidate name variations. Changes are applied to all participants with the selected value.'
-                  : 'Edit dan satukan variasi nama. Perubahan akan digunakan kepada semua peserta dengan nilai yang dipilih.'}
+                  ? 'Match one value from Column A into one value from Column B. All participant entries from Column A are moved into Column B.'
+                  : 'Padankan satu nilai dari Lajur A ke satu nilai di Lajur B. Semua entri peserta dari Lajur A akan dipindahkan ke Lajur B.'}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-1 rounded-lg border bg-gray-50 p-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={normalizeTab === 'organization' ? 'default' : 'ghost'}
+                  onClick={() => setNormalizeTab('organization')}
+                >
                   {language === 'en' ? 'Organizations' : 'Organisasi'}
-                </h3>
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {organizations.length === 0 ? (
-                    <p className="text-sm text-gray-500">{language === 'en' ? 'No organization data' : 'Tiada data organisasi'}</p>
-                  ) : organizations.map((org) => (
-                    <div key={org} className="flex items-center gap-2">
-                      <Input
-                        value={orgEdits[org] ?? org}
-                        onChange={(e) => setOrgEdits(prev => ({ ...prev, [org]: e.target.value }))}
-                      />
-                      <Button
-                        size="sm"
-                        disabled={isNormalizing || (orgEdits[org] ?? org).trim() === org}
-                        onClick={() => handleNormalizeValue('organization', org, orgEdits[org] ?? org)}
-                      >
-                        {language === 'en' ? 'Apply' : 'Guna'}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={normalizeTab === 'department' ? 'default' : 'ghost'}
+                  onClick={() => setNormalizeTab('department')}
+                >
+                  {language === 'en' ? 'Departments' : 'Jabatan'}
+                </Button>
               </div>
 
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100">
-                  {language === 'en' ? 'Departments' : 'Jabatan'}
-                </h3>
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {departments.length === 0 ? (
-                    <p className="text-sm text-gray-500">{language === 'en' ? 'No department data' : 'Tiada data jabatan'}</p>
-                  ) : departments.map((dept) => (
-                    <div key={dept} className="flex items-center gap-2">
-                      <Input
-                        value={deptEdits[dept] ?? dept}
-                        onChange={(e) => setDeptEdits(prev => ({ ...prev, [dept]: e.target.value }))}
-                      />
-                      <Button
-                        size="sm"
-                        disabled={isNormalizing || (deptEdits[dept] ?? dept).trim() === dept}
-                        onClick={() => handleNormalizeValue('department', dept, deptEdits[dept] ?? dept)}
-                      >
-                        {language === 'en' ? 'Apply' : 'Guna'}
-                      </Button>
+              {normalizeTab === 'organization' ? (
+                organizations.length === 0 ? (
+                  <p className="text-sm text-gray-500">{language === 'en' ? 'No organization data' : 'Tiada data organisasi'}</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {language === 'en' ? 'Column A: Add Organisation 1' : 'Lajur A: Tambah Organisasi 1'}
+                        </label>
+                        <Select value={sourceOrganization} onValueChange={handleSourceOrganizationChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'en' ? 'Select source organization' : 'Pilih organisasi sumber'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {organizations.map((org) => (
+                              <SelectItem key={org} value={org}>{org}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {language === 'en' ? 'Column B: Combine Organisation' : 'Lajur B: Gabung Organisasi'}
+                        </label>
+                        <Select value={targetOrganization} onValueChange={setTargetOrganization}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'en' ? 'Select target organization' : 'Pilih organisasi sasaran'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {organizations.filter(org => org !== sourceOrganization).map((org) => (
+                              <SelectItem key={org} value={org}>{org}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+
+                    <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-600">
+                      {language === 'en'
+                        ? `All participants with "${sourceOrganization || '-'}" will be moved to "${targetOrganization || '-'}".`
+                        : `Semua peserta dengan "${sourceOrganization || '-'}" akan dipindahkan ke "${targetOrganization || '-'}".`}
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      disabled={
+                        isNormalizing ||
+                        !sourceOrganization ||
+                        !targetOrganization ||
+                        sourceOrganization === targetOrganization
+                      }
+                      onClick={() => handleCombineMetadata('organization', sourceOrganization, targetOrganization)}
+                    >
+                      {isNormalizing
+                        ? (language === 'en' ? 'Combining...' : 'Menggabungkan...')
+                        : (language === 'en' ? 'Combine Organization Values' : 'Gabungkan Nilai Organisasi')}
+                    </Button>
+                  </>
+                )
+              ) : (
+                departments.length === 0 ? (
+                  <p className="text-sm text-gray-500">{language === 'en' ? 'No department data' : 'Tiada data jabatan'}</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {language === 'en' ? 'Column A: Add Department 1' : 'Lajur A: Tambah Jabatan 1'}
+                        </label>
+                        <Select value={sourceDepartment} onValueChange={handleSourceDepartmentChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'en' ? 'Select source department' : 'Pilih jabatan sumber'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          {language === 'en' ? 'Column B: Combine Department' : 'Lajur B: Gabung Jabatan'}
+                        </label>
+                        <Select value={targetDepartment} onValueChange={setTargetDepartment}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'en' ? 'Select target department' : 'Pilih jabatan sasaran'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.filter(dept => dept !== sourceDepartment).map((dept) => (
+                              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-600">
+                      {language === 'en'
+                        ? `All participants with "${sourceDepartment || '-'}" will be moved to "${targetDepartment || '-'}".`
+                        : `Semua peserta dengan "${sourceDepartment || '-'}" akan dipindahkan ke "${targetDepartment || '-'}".`}
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      disabled={
+                        isNormalizing ||
+                        !sourceDepartment ||
+                        !targetDepartment ||
+                        sourceDepartment === targetDepartment
+                      }
+                      onClick={() => handleCombineMetadata('department', sourceDepartment, targetDepartment)}
+                    >
+                      {isNormalizing
+                        ? (language === 'en' ? 'Combining...' : 'Menggabungkan...')
+                        : (language === 'en' ? 'Combine Department Values' : 'Gabungkan Nilai Jabatan')}
+                    </Button>
+                  </>
+                )
+              )}
+
+              <p className="text-xs text-gray-500">
+                {language === 'en'
+                  ? 'Tip: Combine short forms into the full official name (e.g. MPP → Majlis Perbandaran Pengerang).'
+                  : 'Tip: Gabungkan singkatan ke nama rasmi penuh (contoh: MPP → Majlis Perbandaran Pengerang).'}
+              </p>
             </div>
           </DialogContent>
         </Dialog>

@@ -9,19 +9,24 @@ export async function PATCH(request: Request) {
     const body = await request.json()
 
     const field = body.field as FieldType
-    const fromValue = typeof body.fromValue === 'string' ? body.fromValue.trim() : ''
+    const fromValue = typeof body.fromValue === 'string' ? body.fromValue : ''
     const toValue = typeof body.toValue === 'string' ? body.toValue.trim() : ''
+    const fromValueTrimmed = fromValue.trim()
 
     if (!field || !['organization', 'department'].includes(field)) {
       return NextResponse.json({ error: 'Invalid field' }, { status: 400 })
     }
 
-    if (!fromValue) {
+    if (!fromValueTrimmed) {
       return NextResponse.json({ error: 'Source value is required' }, { status: 400 })
     }
 
     if (!toValue) {
       return NextResponse.json({ error: 'Target value is required' }, { status: 400 })
+    }
+
+    if (fromValueTrimmed === toValue) {
+      return NextResponse.json({ error: 'Source and target cannot be the same' }, { status: 400 })
     }
 
     const { data, error } = await supabase
